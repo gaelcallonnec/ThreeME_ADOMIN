@@ -661,33 +661,25 @@ CSPE = CSPE_2305 + CSPE_2306
 
 #------------------- Modification des capex et opex de la production d'énergie
 
- @over IA_n[se23] = (@year< 2022) * IA_n[se23]{-1}*(1+(ADJUST(1, 1) * d(log(IA[se23]{-1})) + ADJUST(1, 2) * d(log(Y_e[se23])) + ADJUST(1, 3) * (log(K_n[se23]{-1}) - log(K[se23]{-1})) + ADJUST(1, 4) * d(SUBST_K[se23]))) _
-                    + (@year>= 2022) * (INVexo[se23])   if K[se23] <> 0
-
-#  @over PROG_K_2403 = (@year< 2022)*(PROG_K_2403{-1}*(1+ GR_prog_K_2403)) + (@year>= 2022) * (PROG_K_2403{-1}*(1 - 0.4*(log(cible_CU_2403)-log(CU_MWH_PGDP_2403{-1}))))       if K_2403<>0
-    
-#  @over PROG_L_2403 = (@year< 2022)*(PROG_L_2403{-1}*(1+ GR_prog_L_2403)) + (@year>= 2022) * (PROG_L_2403{-1}*(1 - 0.2*(log(cible_CU_2403)-log(CU_MWH_PGDP_2403{-1}))))       if K_2403<>0
-
   CU_CAPEX[s] * PY[s] * Y[s] = CK[s]*K[s]   if Y[s] > 0
 
   CU_OPEX[s] * PY[s] * Y[s] = CL[s]*L[s] + PEner[s]*Ener[s] + PMAT[s]*MAT[s] if Y[s] > 0   
- 
-  
+   
   CU_CAPEX_Mwh[se] = (CU_CAPEX[se]*PY[se]*Y[se]/PGDP)/(Q_mtep_ef[se]/0.086)      if Q_mtep_ef[se] >0
 
   CU_OPEX_Mwh[se] = (CU_OPEX[se]*PY[se]*Y[se]/PGDP)/(Q_mtep_ef[se]/0.086)        if Q_mtep_ef[se] >0
                    
-  @over IA_n[se23] = (@year< 2022) * IA_n[se23]{-1}*(1+(ADJUST(1, 1) * d(log(IA[se23]{-1})) + ADJUST(1, 2) * d(log(Y_e[se23])) + ADJUST(1, 3) * (log(K_n[se23]{-1}) - log(K[se23]{-1})) + ADJUST(1, 4) * d(SUBST_K[se23]))) _
-                    + (@year>= 2022) * (INVexo[se23])  if K[se23] <> 0
+  @over IA_n[se23] = (@year< 2021) * IA_n[se23]{-1}*(1+(ADJUST(1, 1) * d(log(IA[se23]{-1})) + ADJUST(1, 2) * d(log(Y_e[se23])) + ADJUST(1, 3) * (log(K_n[se23]{-1}) - log(K[se23]{-1})) + ADJUST(1, 4) * d(SUBST_K[se23]))) _
+                    + (@year>= 2021) * (INVexo[se23])  if K[se23] <> 0
  
 
- @over K_n[se23] = (@year<2022)*(K_n[se23]{-1}*(1 + dlog(Y[se23]) + d(SUBST_K[se23]) - dlog(PROG_K[se23]) + Choc_CSC[se23])) + _
-                         (@year>=2022)*(Kexo[se23] + Choc_CSC[se23]) if K_n[se23] <> 0     
+ @over K_n[se23] = (@year<2021)*(K_n[se23]{-1}*(1 + dlog(Y[se23]) + d(SUBST_K[se23]) - dlog(PROG_K[se23]) + Choc_CSC[se23])) + _
+                         (@year>=2021)*(Kexo[se23] + Choc_CSC[se23]) if K_n[se23] <> 0     
                     
 
- @over  d(log(MAT_n[se23]))  = (@year< 2022)*(d(log(Y[se23]))  + d(SUBST_MAT[se23])) + (@year>= 2022)* dlog(OPEX_target[se23]*Q_mtep_ef[se23]/0.086)
+ @over  d(log(MAT_n[se23]))  = (@year< 2021)*(d(log(Y[se23]))  + d(SUBST_MAT[se23])) + (@year>= 2021)* dlog(OPEX_target[se23]*Q_mtep_ef[se23]/0.086)
   
-  @over  d(log(L_n[se23]))  = (@year< 2022)*(d(log(Y[se23]))  - d(log(PROG_L[se23]))  + d(SUBST_L[se23])) + (@year>= 2022)* 39/75*dlog(OPEX_target[se23]*Q_mtep_ef[se23]/0.086) 
+  @over  d(log(L_n[se23]))  = (@year< 2021)*(d(log(Y[se23]))  - d(log(PROG_L[se23]))  + d(SUBST_L[se23])) + (@year>= 2021)* 39/75*dlog(OPEX_target[se23]*Q_mtep_ef[se23]/0.086) 
   
   #  39/75 est le rapport entre les emplois liés à la production et les emplois liés à la distribution. 
  
@@ -1191,9 +1183,9 @@ PWD[ce2] = PWD_constant[ce2]*(1.02)^(@year - %baseyear)
 
 LUV[ce,16] = phi_LUV[ce,16] * LUV_16 where ce  in %list_com_E \ 21
 
-dlog(LUV_16)  = dlog(Y_16) + choc_LUV_load if LUV_16 <> 0
+dlog(LUV_16)  = (@year<= 2019)* dlog(LUVexo[road]) + (@year>2019) * dlog(Y_16) + choc_LUV_load if LUV_16 <> 0
 
-dlog(Trucks[road])  = dlog(Y[road]) + choc_truck_load[road] if Trucks[road] <> 0
+dlog(Trucks[road])  = (@year<= 2019)* dlog(Trucksexo[road]) + (@year>2019) * dlog(Y[road]) + choc_truck_load[road] if Trucks[road] <> 0
 
 dlog(E_spe[ce,road]) = dlog(Y[road]) - dlog(PROG_E_spe[ce,road]) where ce  in %list_com_E \ 21 if E_spe[ce,road] >0
 
@@ -1205,9 +1197,15 @@ E_LUV_n_16 = sum(E_LUV_n[ce,16]  where ce in %list_com_E \ 21 on ce)
 
  Q_Mtep_trucks[ce,road] = Mtep_per_trucks[ce,road] * Trucks[ce,road]*1000
  
- Q_Mtep_spe[ce,15] = Q_Mtep_sec[ce,15] - Q_Mtep_Trucks[ce,15]                      
+ #Q_Mtep_spe[ce,15] = Q_Mtep_sec[ce,15] - Q_Mtep_Trucks[ce,15]                      
     
- Q_Mtep_spe[ce,16] = Q_Mtep_sec[ce,16] - Q_Mtep_Trucks[ce,16] - Q_Mtep_LUV[ce,16]
+ #Q_Mtep_spe[ce,16] = Q_Mtep_sec[ce,16] - Q_Mtep_Trucks[ce,16] - Q_Mtep_LUV[ce,16] 
+ 
+ dlog(Q_Mtep_spe[ce,road]) = dlog(E_spe[ce,road]) if E_LUV_n[ce,16] >0   where ce  in %list_com_E \ 21 if Q_Mtep_spe[ce,road] >0
+ 
+ @over Q_Mtep_sec[ce,15] = Q_Mtep_spe[ce,15] + Q_Mtep_Trucks[ce,15] 
+ 
+ @over Q_Mtep_sec[ce,16] = Q_Mtep_spe[ce,16] + Q_Mtep_Trucks[ce,16] + Q_Mtep_LUV[ce,16] 
 
 @over dlog(E_LUV_n[ce,16]) = dlog(Q_Mtep_LUV[ce,16])  where ce  in %list_com_E \ 21  if E_LUV_n[ce,16] >0
 
@@ -1231,19 +1229,45 @@ New_LUV_16 = sum(New_LUV[ce,16] on ce)
 
 PNew_Trucks[road] * New_trucks[road] = sum( PNew_Trucks[ce,road] * New_trucks[ce,road] on ce) 
 
+PNew_Trucks_cst[road] * New_trucks[road] = sum( PNew_Trucks_cst[ce,road] * New_trucks[ce,road] on ce) 
+
 PNew_LUV[16] * New_LUV[16] = sum( PNew_LUV[ce,16] * New_LUV[ce,16] on ce)                  #PLUV est un prix réel en k€ 
+
+PNew_LUV_cst[16] * New_LUV[16] = sum( PNew_LUV_cst[ce,16] * New_LUV[ce,16] on ce)                  #PLUV est un prix réel en k€
 
 PTrucks[road] * Trucks[road]  = PNew_trucks[road] * New_trucks[road] + PTrucks[road]{-1} * Trucks[road]{-1}*(1-tdec[road])
 
+PTrucks_cst[road] * Trucks[road]  = PNew_trucks_cst[road] * New_trucks[road] + PTrucks_cst[road]{-1} * Trucks[road]{-1}*(1-tdec[road])
+
 PLUV_16 * LUV_16 = PNew_LUV_16 * New_LUV_16 + PLUV_16{-1} * LUV_16{-1}*(1-tdec_16)
 
-@over dlog(K_n[road])  = ( @year <= 2019 )  * ( K_n[road] > 0 )  * dlog(K[road])  + ( @year > 2019 ) * dlog(trucks[road] * PTrucks[road] + _
-                    LUV[road] * PLUV[road] + Choc_CSC[road] )
+PLUV_cst_16 * LUV_16 = PNew_LUV_cst_16 * New_LUV_16 + PLUV_cst_16{-1} * LUV_16{-1}*(1-tdec_16)
                     
-I_MDE[ce,road] = PNew_Trucks[ce,road] * New_trucks[ce,road] + PNew_LUV[ce,road]*New_LUV[ce,road] where ce in %list_com_E \ 21 22 
+@over dlog(K_n[road])  = ( @year <= 2019 )  * ( K_n[road] > 0 )  * dlog(K[road])  + ( @year > 2019 ) * dlog(K[road] )
+                    
+I_MDE[ce,road] = PNew_Trucks_cst[ce,road] * New_trucks[ce,road] + PNew_LUV_cst[ce,road]*New_LUV[ce,road] where ce in %list_com_E \ 21 22 
 
 @over I_MDE[road] = sum( I_MDE[ce,road] where ce in %list_com_E \ 21 22  on ce ) 
  
-@over TAX_CR_VAL[road] = T_TAX_CR[road] * PIA[road] * PNew_Trucks[23,road] * New_trucks[23,road]
+@over TAX_CR_VAL[road] = T_TAX_CR[road] * PNew_Trucks[23,road] * New_trucks[23,road]
 
 @over TAX_CR_VAL = sum(TAX_CR_VAL[s] on s)
+
+PNew_LUV[ce,road] = PNew_LUV_cst[ce,road]*PMAT_03[road]
+
+PNew_Trucks[ce,road] = PNew_Trucks_cst[ce,road]*PMAT_03[road]
+
+@over IA_n_03[road]= IA_n_03[road]{-1}/(IA_n_03[road]{-1}+IA_n_12[road]{-1}) * PTrucks_cst[road] * New_Trucks[road] 
+
+@over IA_n_12[road]= IA_n_12[road]{-1}/(IA_n_03[road]{-1}+IA_n_12[road]{-1}) * PTrucks_cst[road] * New_Trucks[road] 
+
+############# recalage prix de la construction neuve; 
+
+#d( log( PNewBUIL[h,ecl] ) ) = d( log( PCH[13] ) )
+
+@over PNewBUIL[h,ecl]  = PNewBUIL_cst[h,ecl] * PCH[13] 
+
+
+
+
+

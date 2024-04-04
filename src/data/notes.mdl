@@ -25,3 +25,19 @@ NewBUIL_H01_CC  = ( @year > 2006 )  * phi_NewBUIL_H01_CC  * ( d(BUIL_H01)  + BUI
 NewBUIL[h, ecl] := @elem(phi_NewBUIL[h, ecl] * NewBUIL[h], %baseyear)*(1 + STEADYSTATE(2, 1)) ^ (@year - %baseyear) 
 
 NewBUIL[h] := @elem(BUIL[h] * HOUSEHOLD_HYBRID_BUIL(276, 1) / (1 + HOUSEHOLD_HYBRID_BUIL(276, 1)) + BUIL[h, DES]), %baseyear)*(1 + STEADYSTATE(2, 1)) ^ (@year - %baseyear)
+
+@over I_MDE[ce,road] = @elem(PNew_Trucks[ce,road], %baseyear) * New_trucks[ce,road] +  @elem(PNew_LUV[ce,road], %baseyear)*New_LUV[ce,road] where ce in %list_com_E \ 21 22
+
+dlog(PNew_LUV[ce,16]) = (@year<=2019)*dlog(1) +(@year>2019)*dlog(PMAT_03_16)
+
+dlog(PNew_Trucks[ce,road]) = (@year<=2019)*dlog(1) + (@year>2019)*dlog(PMAT_03[road]) 
+
+IA_15  = 0  + IA_01_15  + IA_02_15  + IA_03_15  + IA_04_15  + IA_05_15  + IA_06_15  + IA_07_15  + IA_08_15  + IA_09_15  + IA_10_15  + IA_11_15  + IA_12_15  + IA_13_15  + IA_14_15  + IA_15_15  + IA_16_15  + IA_17_15  + IA_18_15  + IA_19_15  + IA_20_15  + IA_21_15  + IA_22_15  + IA_23_15  + IA_24_15
+
+IA_03_15  = IAD_03_15  + IAM_03_15
+
+IAD_03_15  = ( ( IA_n_03_15  - IAM_03_15 > 0 )  * ( IA_n_03_15  - IAM_03_15 )  + ( IA_n_03_15  - IAM_03_15 <= 0 )  * 0.0001 )  * ( @year <= 2019 )  + ( IAD_03_15(-1)  * ( 1  + ( IA_n_03_15 > 0 )  * ( d(IA_n_03_15)  / IA_n_03_15(-1)  + d(SUBST_IAD_03_15) ) ) )  * ( @year > 2019 )
+
+IAM_03_15  = ( IAM_03_15(-1)  * ( 1  + ( QMexo_03 > 0 )  * ( d(QMexo_03)  / QMexo_03(-1) ) ) )  * ( @year <= 2019 )  + ( IAM_03_15(-1)  * ( 1  + ( IA_n_03_15 > 0 )  * ( d(IA_n_03_15)  / IA_n_03_15(-1)  + d(SUBST_IAM_03_15) ) ) )  * ( @year > 2019 )
+
+dlog(IA_n_03_15)  = ( @year <= 2019 )  * ( IAexo_15 > 0 )  * dlog(IAexo_15)  + ( @year > 2019 )  * dlog(PTrucks_cst_15  * New_Trucks_15)
