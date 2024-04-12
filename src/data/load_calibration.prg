@@ -99,8 +99,8 @@ subroutine load_calibration
   HOUSEHOLD_HYBRID_Trans.read(D4,s=Household_hybrid_Transition) {%data_calibration}
   
   matrix(37,37) TECH_COEF_VAR                         ' Matrix of the TECHNICAL COEFFICIENT VARIATION
-  TECH_COEF_VAR.read(B3,s=technical_coef_variation) {%data_calibration}
+  TECH_COEF_VAR.read(B3,s=technical_coef_var) {%data_calibration}
   
   matrix(37,37) TECH_COEF_VAR_2                         ' Matrix of the TECHNICAL COEFFICIENT VARIATION  in choc scenario
-  TECH_COEF_VAR_2.read(B3,s=technical_coef_variation_2) {%data_calibration}
+  TECH_COEF_VAR_2.read(B3,s=technical_coef_var_2) {%data_calibration}
 endsub

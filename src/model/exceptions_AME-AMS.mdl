@@ -581,9 +581,11 @@ CSPE = CSPE_2305 + CSPE_2306
  
  @over MAT[sne] =  (MAT_n[sne]) 
  
- @over d(log(MAT_n[cm, sne])) = (@year<=2019) * (dlog(CIexo[cm,sne])) + (@year>2019) *(dlog(Y[sne]) + (1-choc_tech_coef)*(Tech_coef_var[cm,sne]) + (choc_tech_coef)*(@year>2023)*(Tech_coef_var_2[cm,sne])+ d(SUBST_MAT[sne]) ) if MAT[cm, sne] <> 0
- 
- @over d(log(MAT_n[cm, sne])) = (@year<=2019) * (dlog(CIexo[cm,sne])) + (@year>2019) *(dlog(Y[sne]) + (1-choc_tech_coef)*(Tech_coef_var[cm,sne] - d(SUBST_MAT[sne])) + (choc_tech_coef)*(@year>2023)*(Tech_coef_var_2[cm,sne] - d(SUBST_MAT[sne]))+ d(SUBST_MAT[sne]) ) if MAT[cm, sne] <> 0
+# @over d(log(MAT_n[cm, sne])) = (@year<=2019) * (dlog(CIexo[cm,sne])) + (@year>2019) *(dlog(Y[sne]) + (1-choc_tech_coef)*(Tech_coef_var[cm,sne] - d(SUBST_MAT[sne])) + (choc_tech_coef)*(@year>2023)*(Tech_coef_var_2[cm,sne] - d(SUBST_MAT[sne]))+ d(SUBST_MAT[sne]) ) if MAT[cm, sne] <> 0
+
+ @over d(log(MAT_n[cm, sne])) = (@year<=2019) * (dlog(CIexo[cm,sne])) + (@year>2019) *(dlog(Y[sne]) + (@year>2023)*(@year<=2030)*(Tech_coef_var[cm,sne] - d(SUBST_MAT[sne])) + _
+                                 (@year>2030)*(Tech_coef_var_2[cm,sne] - d(SUBST_MAT[sne])) + d(SUBST_MAT[sne]) ) if MAT[cm, sne] <> 0
+
  
  @over MAT[cm, sne] = (@year<=2019) * (MATD[cm,sne] + MATM[cm,sne]) + (@year>2019) * (MAT_n[cm, sne]) if MAT[cm, sne] <> 0    
 

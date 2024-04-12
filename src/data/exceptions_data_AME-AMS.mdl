@@ -414,6 +414,7 @@ CCF_val[s] := Tdec[s] * PK[s] * K[s]
 CCF_vol[s] := Tdec[s] * K[s]
 
 MATD[cm, s] := SUPPLY_USE_DOM($cm,(NELEMSET(1,1)+1)+NELEMSET(5,1)+NELEMSET(7,1)+$s) * (1 + STEADYSTATE(2,1)) ^ (@year - %baseyear)
+
 MATM[cm, s] := SUPPLY_USE_FOREIGN(+$cm,1+NELEMSET(5,1)+NELEMSET(7,1)+$s) * (1 + STEADYSTATE(2,1)) ^ (@year - %baseyear)
 
 Tech_coef_var[cm,s] := TECH_COEF_VAR($cm, $s)
