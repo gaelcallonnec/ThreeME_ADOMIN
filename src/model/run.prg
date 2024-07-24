@@ -46,7 +46,7 @@ subroutine run(string %data_calibration, string %data_shock)
        {%modelname}.series    hybrid_round1   
        call export_all_to_csv
 
-       {%modelname}.series exceptions_hybrid_data exceptions_data_AME-AMS  'Exceptions_DGT_data     
+       {%modelname}.series exceptions_hybrid_data exceptions_data_AME-AMS '' Exceptions_DGT_data     
 
        call export_all_to_csv
 

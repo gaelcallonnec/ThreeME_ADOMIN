@@ -581,7 +581,7 @@ CSPE = CSPE_2305 + CSPE_2306
  
  @over MAT[sne] =  (MAT_n[sne]) 
  
-# @over d(log(MAT_n[cm, sne])) = (@year<=2019) * (dlog(CIexo[cm,sne])) + (@year>2019) *(dlog(Y[sne]) + (1-choc_tech_coef)*(Tech_coef_var[cm,sne] - d(SUBST_MAT[sne])) + (choc_tech_coef)*(@year>2023)*(Tech_coef_var_2[cm,sne] - d(SUBST_MAT[sne]))+ d(SUBST_MAT[sne]) ) if MAT[cm, sne] <> 0
+
 
  @over d(log(MAT_n[cm, sne])) = (@year<=2019) * (dlog(CIexo[cm,sne])) + (@year>2019) *(dlog(Y[sne]) + (@year>2023)*(@year<=2030)*(Tech_coef_var[cm,sne] - d(SUBST_MAT[sne])) + _
                                  (@year>2030)*(Tech_coef_var_2[cm,sne] - d(SUBST_MAT[sne])) + d(SUBST_MAT[sne]) ) if MAT[cm, sne] <> 0
@@ -783,8 +783,11 @@ VERIF_CEE = sum(CEE[se] on se) - CEE
 
  BUIL[ce,ecl] =  BUIL[ecl]* ENER_BUIL_h01[ecl,ce] /ENER_BUIL_h01[ecl]
 
- @over d(log(MAT_n_12_13))  = ( @year <= 2019 )  * ( dlog(CIexo_12_13) )  + ( @year > 2019 )  * ( dlog(Y_13)  + ( 1  - choc_tech_coef )  * ( Tech_coef_var_12_13 )  + ( choc_tech_coef )  * ( Tech_coef_var_2_12_13 )  + d(SUBST_MAT_13) + d(choc_PAC)/MAT_n_12_13{-1})
+ #@over d(log(MAT_n_12_13))  = ( @year <= 2019 )  * ( dlog(CIexo_12_13) )  + ( @year > 2019 )  * ( dlog(Y_13)  + ( 1  - choc_tech_coef )  * ( Tech_coef_var_12_13 )  + ( choc_tech_coef )  * ( Tech_coef_var_2_12_13 )  + d(SUBST_MAT_13) + d(choc_PAC)/MAT_n_12_13{-1})
  
+  @over d(log(MAT_n_12_13)) = (@year<=2019) * (dlog(CIexo_12_13)) + (@year>2019) *(dlog(Y_13) + (@year>2023)*(@year<=2030)*(Tech_coef_var_12_13 - d(SUBST_MAT_13)) + _
+                                 (@year>2030)*(Tech_coef_var_2_12_13 - d(SUBST_MAT_13)) + d(SUBST_MAT_13) ) if MAT_12_13 <> 0
+                                 
  @over MATD_12_13  = ( CIDexo_12_13 )  * ( @year <= 2019 )  + ( MATD_12_13{-1} * ( 1  + ( MAT_12_13 > 0 )  * ( d(MAT_12_13)  / MAT_12_13(-1)  + d(SUBST_MATD_12_13) ) ) - Prop_M_PAC * d(choc_PAC) * MATD_12_13{-1}/MAT_12_13{-1} ) * ( @year > 2019 )   
 
  @over SUB_RENOV_val[ecl] = R_SUB_renov[ecl] * RENOV_VAL[ecl] + choc_PAC_VAL[ecl]      where ecl in %list_ener_class\ CA
@@ -1269,7 +1272,16 @@ PNew_Trucks[ce,road] = PNew_Trucks_cst[ce,road]*PMAT_03[road]
 
 @over PNewBUIL[h,ecl]  = PNewBUIL_cst[h,ecl] * PCH[13] 
 
+##################recalge investissement ferroviaire
 
+@over dlog(IA_n_14)  = ( @year <= 2019 )  * ( ( IAexo_14 > 0 )  * ( dlog(IAexo_14) ) )  + ( @year > 2019 )  * ( ADJUST(1 , 1)  * dlog(IA_14{-1})  + _
+                    ADJUST(1 , 2)  * dlog(Y_e_14)  + 1  * ( log(K_n_14{-1})  - log(K_14{-1}) )  + ADJUST(1 , 4)  * d(SUBST_K_14)  + IMP_BUD_14  * GDP{-1}  / IA_14{-1} )
 
+@over dlog(IA_n_14)  = ( @year <= 2019 )  * ( ( IAexo_14 > 0 )  * ( dlog(IAexo_14) ) )  + ( @year > 2019 )  * ( 0  * dlog(IA_14{-1})  + _
+                    1  * dlog(Y_14)  + 1  * ( log(K_n_14{-1})  - log(K_14{-1}) )  + 0  * d(SUBST_K_14)  + IMP_BUD_14  * GDP{-1}  / IA_14{-1} )
+                    
+@over IA_n_14  = ( @year <= 2019 )  * ( ( IAexo_14 > 0 )  * IAexo_14 )  + ( @year > 2019 )  * ( IA_14{-1}*(1+dlog(Y_14) ) _
+                + 1  * ( K_n_14{-1}  - K_14{-1})  + 0  * d(SUBST_K_14)  + IMP_BUD_14  * GDP{-1}  / IA_14{-1} )
 
-
+@over d(log(K_n_14))  = ( @year <= 2019 )  * ( K_n_14 > 0 )  * ( dlog(K_14) )  + ( @year > 2019 )  * ( dlog(Y_14)  + _
+                         0*d(SUBST_K_14)  - dlog(PROG_K_14)  + Choc_CSC_14 + IMP_BUD_14  * GDP{-1}  / IA_14{-1}) 

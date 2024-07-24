@@ -1,28 +1,90 @@
+##########################################################
+################ MODIFICATIONS EVAL SNBC3 ################
+##########################################################
+
+#### Modification pour tableaux de sorties ####
+
+MAT := sum (MAT[s] if MAT[s]<>0 on s)
+PMAT := sum (PMAT[s]*MAT[s] if MAT[s]<>0 on s)
+
+w_s_spb:= sum(W_S[s]*(1 + TCSE[s])*L_S[s]/L_s on s)
+w_spb := w_s_spb * L_s/L + w_se*L_se/L
+
+CL_S_bis[s] :=  CL_S[s]* PROG_L[s] 
+CL_SE_bis[s] := CL_SE[s]* PROG_L[s] 
+CL_S_bis := (sum(CL_S_bis[s] * L_S[s] on s))/L_S
+CL_SE_bis := (sum(CL_SE_bis[s] * L_SE[s] on s))/L_SE
+CL_bis  * L  := ( CL_S_bis  * L_S  + CL_SE_bis  * L_SE )
+
+##### MODIFICATION DU COUT DU CAPITAL #####
+
+#@over CK[sne] := PK[sne] * (Tdec[sne] + RK[sne] - d(PK[sne])/PK[sne]{-1}) if K[sne] > 0   
+#@over CK[s] := PIA[s] * (Tdec[s] + RK[s] - d(PIA[s])/PIA[s]{-1}) if K[s] > 0
+@over CK[s] := PK[s]* (Tdec[s] + RK[s] - d(PIA[s])/PIA[s]{-1})
+
+##### INVESTISSEMENT ##### 
+Ibis[sne] := IA_n[sne]
+Ibis_bis[sne] := IA_n[sne]
+IMP_BUD_bis[sne] := 0
+
+#IMP_BUD_20_bis := 0
+#Kbis_n_20 := K_n_20
+#CHOC_K_20 := 0
+#@over IA_des[s] := IA[s]
+
 #### PRIX DES IMPORTATIONS ####
 
-YQ_SM := sum(YQ[cbienmar] on cbienmar)
-PYQ_SM := P
+YQS_SM := sum(YQS[cbienmar] on cbienmar)
+PYQS_SM := sum(YQS[cbienmar]*PYQS[cbienmar]/YQS_SM on cbienmar)
+GRPM_01:=0
+GRPM[sind]:=0
+GRPM[cservex]:=0
+GRPM[ce]:=0
+
 
 #### VOLUMES DES IMPORTATIONS ####
 
-GRMATM[cdai,sne] :=  STEADYSTATE(2,1)
-GRMATM[cdaicim,sepeg] :=  STEADYSTATE(2,1)
-GRMATM[cservex,sne] :=  STEADYSTATE(2,1)
-GRMATM[cservex,sepeg] :=  STEADYSTATE(2,1)
-GRCHM[cdai] :=  STEADYSTATE(2,1)
-GRCHM[cservex] :=  STEADYSTATE(2,1)
-GRCHM[cepeg] :=  STEADYSTATE(2,1)
-GRGM[cdai] :=  STEADYSTATE(2,1)
-GRGM[cservex] :=  STEADYSTATE(2,1)
-GRIAM[cdai,sne] :=  STEADYSTATE(2,1)
-GRIAM[cservex,sne] :=  STEADYSTATE(2,1)
-#GRDSM[cdai] :=  STEADYSTATE(2,1)
-#GRDSM[cservex] :=  STEADYSTATE(2,1)
-GREM[eno21,s] :=  STEADYSTATE(2,1)
+GRMATM[cdai,sne] := 0
+GRMATM[cdaicim,sepeg] := 0
+GRMATM[cservex,sne] := 0
+GRMATM[cservex,sepeg] := 0
+GRCHM[cdai] := 0
+GRCHM[cservex] := 0
+GRCHM[cepeg] := 0
+GRGM[cdai] := 0
+GRGM[cservex] := 0
+GRIAM[cdai,sne] := 0
+GRIAM[cservex,sne] := 0
+#GRDSM[cdai] := 0
+#GRDSM[cservex] := 0
+GREM[eno21,s] := 0
+
+
+#### TAUX DE MARGE DE THREEME V3 ####
+
+CUR_test[sne] := Y[sne] / YCAP_test[sne]
+YCAP_test[sne] := Y[sne] / 0.8 ### calibrage de ThreeME V3
+
+
+##########################################################
+############ AUTRES MODIFICATIONS DESACTIVEES ############
+##########################################################
+
 
 #### PRIX DES EXPORTATIONS ####
 
+#PXD_n[c] := PXD[c] where c in 01 02 03 04 05 06 07 08 09 10 11 12 14 16 17 18 19
 PXD_n[c] := P 
+
+
+#### VOLUMES DES EXPORTATIONS ####
+
+#X_n[c] := X[c] where c in 01 02 03 04 05 06 07 08 09 10 11 12 14 16 17 18 19
+
+GR_X_temp[cdai]:= (0.86 * d(log(WD[cdai])) - 0.22 * (d(log(PXD[cdai]))-d(log(PXM[cdai]))) - 0.11 * (log(X[cdai]{-1}) - log(WD[cdai]{-1}) + 0.77 * (log(PXD[cdai]{-1})-log(PXM[cdai]{-1})))) if X[cdai] <>0
+GR_X_temp[cservex]:= (0.27 * d(log(WD[cservex])) + 0.19 * d(log(WD[cservex]{-1})) - 0.23 * (d(log(PXD[cservex]))-d(log(PXM[cservex]))) - 0.08 * (log(X[cservex]{-1}) - log(WD[cservex]{-1}) + 0.81 * (log(PXD[cservex]{-1})-log(PXM[cservex]{-1})))) if X[cservex] <>0
+GR_X_temp[ce]:= (0.89 * d(log(WD[ce])) - 0.3 * (log(X[ce]{-1}) - log(WD[ce]{-1})))  if X[ce] <>0
+
 
 #### VOLUMES DES EXPORTATIONS ####
 
@@ -34,15 +96,15 @@ PYX_n[s] := P
 
 PYX[s] := P
 
-YD[s] := Y[s] - YX[s]  #YD est la production vendue sur le marché domestique
+YD[s] := Y[s] - YX[s]  #YD est la production vendue sur le marchÃ© domestique
 
 PYD[s] := P
 
 PYD_n[s] := P
 
-YX[s] := sum(YX[c,s] on c)   #YX est la production domestique exportée. Limite du modèle, les taux de TVA et autres taxes et subventions à la consommation sont les mêmes pour les produits consommés domestiquement et les exports
+YX[s] := sum(YX[c,s] on c)   #YX est la production domestique exportÃ©e. Limite du modÃ¨le, les taux de TVA et autres taxes et subventions Ã  la consommation sont les mÃªmes pour les produits consommÃ©s domestiquement et les exports
 
-#YX[c,s]*QD[c] := Y[c,s]*XD[c] if QD[c]>0 #limite du modèle : on connait les exports par produit mais pas par filière. On suppose que les exports des produits des filières sont égaux au prorata des exports par produits. 
+#YX[c,s]*QD[c] := Y[c,s]*XD[c] if QD[c]>0 #limite du modÃ¨le : on connait les exports par produit mais pas par filiÃ¨re. On suppose que les exports des produits des filiÃ¨res sont Ã©gaux au prorata des exports par produits. 
 
 YX[c,s] := PhiY[c,s]*XQ[c] 
 
@@ -60,13 +122,13 @@ OTHTXD[c] := @elem(TOTHTXD[c] , 2006)  * XQ[c]
 
 POTHTXD[c]  := P
 
-TOTHTXD[c] := TOTHTD[c]  # à modifier ultérieurement si données disponibles. Auquel cas il faudra créer une équation OTHTYD et OTHTYD et modifier l'équation de OTHTD
+TOTHTXD[c] := TOTHTD[c]  # Ã  modifier ultÃ©rieurement si donnÃ©es disponibles. Auquel cas il faudra crÃ©er une Ã©quation OTHTYD et OTHTYD et modifier l'Ã©quation de OTHTD
 
 ENERTXD[c] := @elem(TTICXD[c], %baseyear) * XQ[c] 
 
 PENERTXD[c] := P
 
-TTICXD[c] := TTICD[c] # à modifier ultérieurement si données disponibles Auquel cas il faudra créer une équation TTICYD et TICYD et modifier l'équation de TICD
+TTICXD[c] := TTICD[c] # Ã  modifier ultÃ©rieurement si donnÃ©es disponibles Auquel cas il faudra crÃ©er une Ã©quation TTICYD et TICYD et modifier l'Ã©quation de TICD
 
 TCO_VALXD[c]*YQ[c] := TCO_VALD[c] * XQ[c] if YQ[c]>0
 
@@ -74,7 +136,7 @@ SUBXD[c]  := @elem(TSUBXD[c] , 2006)  * XQ[c]
 
 PSUBXD[c] := P
 
-TSUBXD[c] := TSUBD[c] # à modifier ultérieurement si données disponibles. Auquel cas il faudra créer une équation TSUBYD et SUBYD et modifier l'équation de SUBD
+TSUBXD[c] := TSUBD[c] # Ã  modifier ultÃ©rieurement si donnÃ©es disponibles. Auquel cas il faudra crÃ©er une Ã©quation TSUBYD et SUBYD et modifier l'Ã©quation de SUBD
 
 PMTXD[c] := P
 
@@ -82,9 +144,13 @@ PMTXD[s,c] := PXD[s] where s in 14 16 17 18
 
 PMCXD[c] := P
 
-MTXD[c] := sum(MTXD[s,c] on s) where s in 14 16 17 18
+MTXD[c] := MTXD_14[c] + MTXD_16[c] + MTXD_17[c] + MTXD_18[c] 
 
-MTXD[s,c]*YQ[c] := MTD[s,c] * XQ[c] if YQ[c]>0  where s in 14 16 17 18
+#sum(MTXD[s,c] on s) where s in 14 16 17 18
+
+#MTXD[s,c]*YQ[c] := 0 +((MTD[s,c] * XQ[c])>0) * (MTD[s,c] * XQ[c]) if YQ[c]>0  where s in 14 16 17 18
+MTXD[s,c] := (0+(MTD[s,c]>=0)*MTD[s,c])*XQ[c]/YQ[c] if YQ[c]>0  where s in 14 16 17 18
+
 
 MCXD[c]*YQ[c] := MCD[c]*XQ[c] if YQ[c]>0
 
@@ -92,7 +158,28 @@ MCXD[c]*YQ[c] := MCD[c]*XQ[c] if YQ[c]>0
 
 #XQS[c]*YQ[c] := (YQ[c] + OTHTD[c] + ENERTD[c] + SUBD[c] + MTD[c] + MCD[c])*XQ[c]  if YQ[c] > 0
 
-@over PXD[c] := P
+PXD[c] := P
 
 #verif_XQbis_XQ[c] := 0
 #verif_Ybis_YQbis := Y-YQ
+
+##### salaires #####
+#prix de VA anticipe
+pva_e := p
+
+##### PART DES DEPENSES INCOMPRESSIBLES DE SERVICES NON MARCHANDS
+
+#@over NEXP_20_h01 := EXP_20_h01 * 0.86 #source Insee sans devoir modifier le fichier SAM_FRA_AME-AMS/Household
+
+#### AJOUTS CHOCS DGT POUR CAHIER DE VARIANTES####
+
+CHOC_K := 0
+CHOC_PGF := 0 
+CHOC_L := 0
+CHOC_E := 0
+Choc_daccs_NIV :=0
+
+IMP_BUD_niv[sne]:=0
+IA_notionnel_noshock[sne]:=IA_n[sne]
+IA_notionnel[sne]:=IA_n[sne]
+IA_n_noshock[sne]:=IA_n[sne]
