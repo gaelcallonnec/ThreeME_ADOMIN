@@ -569,11 +569,13 @@ CSPE = CSPE_2305 + CSPE_2306
 
 @over E_oth_des_23_17  = E_oth_des_23_17{-1} *(1 + d(log(E_oth_17))  + d(SUBST_E_23_17)) + Choc_E_oth_des_23_17
 
-  @over MATD[cm,sne]  = (CIDexo[cm,sne])*(@year<=2019) + _
-                        (MATD[cm,sne]{-1}*(1+(MAT[cm,sne]>0)*(d(MAT[cm,sne])/MAT[cm,sne]{-1} + d(SUBST_MATD[cm,sne])))) *(@year>2019) if MATD[cm,sne] <> 0
+ 
  
  #------------------ choc sur les consommations intermédiaires
-    
+  @over MATD[cm,sne]  = (CIDexo[cm,sne])*(@year<=2019) + _
+                        (MATD[cm,sne]{-1}*(1+(MAT[cm,sne]>0)*(d(MAT[cm,sne])/MAT[cm,sne]{-1} + d(SUBST_MATD[cm,sne])))) *(@year>2019) if MATD[cm,sne] <> 0
+                        
+                           
   @over MATM[cm,sne]  = (CIMexo[cm,sne])*(@year<=2019) _
                        + ((MAT[cm,sne]-MATD[cm,sne]>0)*(MAT[cm,sne]-MATD[cm,sne])+(MAT[cm,sne]-MATD[cm,sne]<=0)*0.0001)*(@year>2019) if MATM[cm,sne] <> 0
  

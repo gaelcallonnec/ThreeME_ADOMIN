@@ -41,3 +41,64 @@ IAD_03_15  = ( ( IA_n_03_15  - IAM_03_15 > 0 )  * ( IA_n_03_15  - IAM_03_15 )  +
 IAM_03_15  = ( IAM_03_15(-1)  * ( 1  + ( QMexo_03 > 0 )  * ( d(QMexo_03)  / QMexo_03(-1) ) ) )  * ( @year <= 2019 )  + ( IAM_03_15(-1)  * ( 1  + ( IA_n_03_15 > 0 )  * ( d(IA_n_03_15)  / IA_n_03_15(-1)  + d(SUBST_IAM_03_15) ) ) )  * ( @year > 2019 )
 
 dlog(IA_n_03_15)  = ( @year <= 2019 )  * ( IAexo_15 > 0 )  * dlog(IAexo_15)  + ( @year > 2019 )  * dlog(PTrucks_cst_15  * New_Trucks_15)
+
+d(log(PARTR_e_M_65))  = 0.05  * d(log(PARTR_e_M_65(-1)))  + 0.65  * d(log(PARTR_M_65(-1)))  + 0.3  * d(log(PARTR_n_M_65))
+
+d(PARTR_n_M_65)  = d(PARTR_trend_M_65)  + betaEmp_M_65  * d(UnR_M_65) negatif en 2022
+
+
+UnR_M_65  = Un_M_65  / LF_M_65
+
+Un_M_65  = LF_M_65  - Empl_M_65 #négatif en 2017
+
+LF_M_65  = PARTR_M_65  * WAPop_M_65
+
+d(log(empl_M_65))  = d(log(L))
+
+dlog(IA_n_noshock_15)  = ( @year <= 2019 )  * ( ( IAexo_15 > 0 )  * ( dlog(IAexo_15) ) )  + ( @year > 2019 )  * ( ADJUST(1 , 1)  * dlog(IA_15(-1))  + 1.5  * dlog(Y_15)  + 0.28  * ( log(IA_notionnel_15(-1))  - log(IA_n_15(-1)) )  + 0  * d(SUBST_K_15) )
+
+IA_15  = 0  + IA_01_15  + IA_02_15  + IA_03_15  + IA_04_15  + IA_05_15  + IA_06_15  + IA_07_15  + IA_08_15  + IA_09_15  + IA_10_15  + IA_11_15  + IA_12_15  + IA_13_15  + IA_14_15  + IA_15_15  + IA_16_15  + IA_17_15  + IA_18_15  + IA_19_15  + IA_20_15  + IA_21_15  + IA_22_15  + IA_23_15  + IA_24_15
+ia_15( négatif en 2024)
+
+IA_01_15  = IAD_01_15  + IAM_01_15
+
+IAD_03_15  = ( ( IA_n_03_15  - IAM_03_15 > 0 )  * ( IA_n_03_15  - IAM_03_15 )  + ( IA_n_03_15  - IAM_03_15 <= 0 )  * 0.0001 )  * ( @year <= 2019 )  + ( IAD_03_15(-1)  * ( 1  + ( IA_n_03_15 > 0 )  * ( d(IA_n_03_15)  / IA_n_03_15(-1)  + d(SUBST_IAD_03_15) ) ) )  * ( @year > 2019 )
+#négatif en 2024   d(IA_n_03_15)  / IA_n_03_15(-1)=-1.56 en 2021
+IAM_03_15  = ( IAM_03_15(-1)  * ( 1  + ( QMexo_03 > 0 )  * ( d(QMexo_03)  / QMexo_03(-1) ) ) )  * ( @year <= 2019 )  + ( IAM_03_15(-1)  * ( 1  + ( IA_n_03_15 > 0 )  * ( d(IA_n_03_15)  / IA_n_03_15(-1)  + d(SUBST_IAM_03_15) ) ) )  * ( @year > 2019 )
+#négatif en 2024
+
+IA_n_03_15  = IA_n_03_15(-1)  / ( IA_n_03_15(-1)  + IA_n_12_15(-1) )  * PTrucks_cst_15  * New_Trucks_15
+new_trucks_15 est négatif
+
+IA_notionnel_15  = IA_notionnel_noshock_15  + ( @year > 2019 )  * ( IMP_BUD_niv_15  + Choc_CSC_niv_15 )
+
+Y_15  = 0  + Y_15_15
+
+Y_15_15  = PhiY_15_15  * YQ_15
+
+YQ_15  * PYQ_15  = PQD_15  * QD_15  - PVATD_15  * VATD_15  - POTHTD_15  * OTHTD_15  - PSUBD_15  * SUBD_15  - ( PMCD_15  * MCD_15  + PMTD_15  * MTD_15 )  - PENERTD_15  * ENERTD_15
+
+QD_15  = CID_15  + CHD_15  + GD_15  + ID_15  + XD_15  + DSD_15
+
+CID s'effondre à partir de 2023, Y_15 baisse si bien que newtrucks diminue et l'investissement devient négatif. 
+
+New_trucks_22_15  = Trucks_22_15  - Trucks_22_15(-1)  * ( 1  - tdec_15 )
+
+dlog(KM_AUTO_elec_H01_CF)  = dlog(AUTO_elec_H01_CF)  + dlog(KmPerAuto_H01)
+
+d(AUTO_elec_H01_CF)  = ( @year > 2006 )  * ( NewAUTO_H01  * share_elec_H01  * phi_elec_H01_CF  - delta_AUTO_H01_CA_DES  * AUTO_elec_H01_CF(-1) )  + ( @year <= 2006 )  * ( AUTO_elec_H01_CF(-1)  * STEADYSTATE(2 , 1) )
+
+NewAUTO_H01  = ( @year > 2006 )  * ( d(AUTO_N)  + AUTO_H01_DES )  + ( @year  = < 2006 )  * NewAUTO_H01(-1)  * ( 1  + STEADYSTATE(2  , 1) ) baisse tres fortement en 2022 car Km_auto chute 
+
+phi_elec_H01_CF  = phi_elec_e_H01_CF  / phi_elec_n_tot_H01
+ # phi_elec_h01_CF devient négatif en 2026
+ 
+ phi_elec_e_H01_CF  = ( phi_elec_n_H01_CF > 0 )  * phi_elec_n_H01_CF  + ( phi_elec_n_H01_CF <= 0 )  * 0
+
+d(log(L_e_21))  = 0.05  * d(log(L_e_21(-1)))  + 0.65  * d(log(L_21(-1)))  + 0.3  * d(log(L_n_21))
+
+d(log(L_n_21))  = d(log(Y_21))  - d(log(PROG_L_21))  + d(SUBST_L_21) #négatif en 2026
+
+d(log(GD_24))  = d(log(EXPG_24))  + d(SUBST_GD_24)
+
+

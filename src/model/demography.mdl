@@ -7,7 +7,7 @@ d(log(empl[sex, age])) = d(log(L)) if empl[sex, age] <> 0
 LF[sex, age] = PARTR[sex, age] * WAPop[sex, age]
 
 # equation 7.3
-d(PARTR_n[sex, age]) = d(PARTR_trend[sex, age]) + betaEmp[sex, age] * d(UnR[sex, age])
+#d(PARTR_n[sex, age]) = d(PARTR_trend[sex, age]) + betaEmp[sex, age] * d(UnR[sex, age]) # probleme, dans certains cas UnR[sex, age]<0
 
 # equation 7.4
 Un[sex, age] = LF[sex, age] - Empl[sex, age]
@@ -39,11 +39,11 @@ LF_TOT = sum(LF[sex] on sex)
 
 d(log(WAPop[sex, age])) = dlog(POP_TOT) - 0.5 * d(UNR_TOT) # modifié Gaël (insertion d'un taux de flexion)     
 
-#dlog(WAPop) = dlog(POP_TOT)
+#@over dlog(WAPop) = dlog(POP_TOT) - 0.5 * d(UNR_TOT)
 
-#UN_TOT = WAPop - L
+#@over UN_TOT = WAPop - L
 
-#UnR_TOT=Un_TOT/L
+#@over UnR_TOT=Un_TOT/WAPop
 
 
 

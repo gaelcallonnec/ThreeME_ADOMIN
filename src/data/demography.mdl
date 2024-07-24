@@ -17,7 +17,7 @@ UnR[sex] := Un[sex] / (LF[sex] + (LF[sex]<0.0000000001)*1)
 
 UnR_TOT := Un_TOT/LF_TOT
 
-#UnR_TOT := Un_TOT/L
+#UnR_TOT := Un_TOT/WApop
 
 # equation 7.7
 
@@ -29,9 +29,9 @@ UN[sex] := sum(UN[sex, age] on age)
 
 # equation 7.9
 
-UN_TOT := sum(UN[sex] on sex)      erreur la somme des LF[age,sex] n'est pas égale à LS+LE=L
+UN_TOT := sum(UN[sex] on sex)      #erreur la somme des LF[age,sex] n'est pas égale à LS+LE=L
 
-#UN_TOT := WaPop - L
+#@over UN_TOT := WaPop - L
 
 # equation 7.10
 

@@ -53,9 +53,9 @@ d(log(PY_e[s])) = ADJUST(17, 2) * d(log(PY_e[s]{-1})) + ADJUST(17, 3) * d(log(PY
 d(log(W_S[s])) = ADJUST(18, 1) * d(log(W_S_n[s])) + (1 - ADJUST(18, 1)) * d(log(W_S[s]{-1})) - ADJUST(18,2)*log(W_S[s]{-1}/W_S_n[s]{-1}) if W_S[s] <> 0
 
 # equation 8.16
-log(PARTR[sex, age]) = ADJUST(19, 1) * log(PARTR_n[sex, age]) + (1 - ADJUST(19, 1)) * (log(PARTR[sex, age]{-1}) + d(log(PARTR_e[sex, age]))) if PARTR[sex, age] <> 0
+#log(PARTR[sex, age]) = ADJUST(19, 1) * log(PARTR_n[sex, age]) + (1 - ADJUST(19, 1)) * (log(PARTR[sex, age]{-1}) + d(log(PARTR_e[sex, age]))) if PARTR[sex, age] <> 0
 
-d(log(PARTR_e[sex, age])) = ADJUST(19, 2) * d(log(PARTR_e[sex, age]{-1})) + ADJUST(19, 3) * d(log(PARTR[sex, age]{-1})) + ADJUST(19, 4) * d(log(PARTR_n[sex, age])) if PARTR[sex, age] <> 0
+#d(log(PARTR_e[sex, age])) = ADJUST(19, 2) * d(log(PARTR_e[sex, age]{-1})) + ADJUST(19, 3) * d(log(PARTR[sex, age]{-1})) + ADJUST(19, 4) * d(log(PARTR_n[sex, age])) if PARTR[sex, age] <> 0
 
 # equation 8.17
 # Interest rate

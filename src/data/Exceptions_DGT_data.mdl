@@ -5,7 +5,8 @@
 #### Modification pour tableaux de sorties ####
 
 MAT := sum (MAT[s] if MAT[s]<>0 on s)
-PMAT := sum (PMAT[s]*MAT[s] if MAT[s]<>0 on s)
+#PMAT := sum (PMAT[s]*MAT[s] if MAT[s]<>0 on s) #error
+PMAT * MAT := sum (PMAT[s]*MAT[s] if MAT[s]<>0 on s)
 
 w_s_spb:= sum(W_S[s]*(1 + TCSE[s])*L_S[s]/L_s on s)
 w_spb := w_s_spb * L_s/L + w_se*L_se/L
@@ -32,6 +33,13 @@ IMP_BUD_bis[sne] := 0
 #CHOC_K_20 := 0
 #@over IA_des[s] := IA[s]
 
+# ajout des intérêts au stock de dette des ménages (uniquement pour affichage, cahier de variantes)
+# pour le GOV ils sont inclus dans le deficit qui est utilise pour calculer la dette
+DEBT_REHAB_Val_tot[h,ecl] :=  DEBT_REHAB_Val[h,ecl] + DEBT_REHAB_Val[h,ecl]{-1}*R_I_REHAB[h,ecl]{-1} 
+DEBT_NewB_Val_tot[h,ecl] := DEBT_NewB_Val[h,ecl] + DEBT_NewB_Val[h,ecl]{-1}*R_I_NewBUIL[h,ecl]{-1}  
+DEBT_AUTO_Val_tot[h,ecl] := DEBT_AUTO_Val[h,ecl] + DEBT_AUTO_Val[h,ecl]{-1}*R_I_AUTO[h,ecl]{-1}  
+
+
 #### PRIX DES IMPORTATIONS ####
 
 YQS_SM := sum(YQS[cbienmar] on cbienmar)
@@ -43,10 +51,31 @@ GRPM[ce]:=0
 
 
 #### VOLUMES DES IMPORTATIONS ####
+  
+ @over MAT_n[sne] := sum(MAT_n[cm,sne] on cm)
+ 
+ #@over MAT_des[sne] = MAT_n[sne]
+ 
+ MATM_des[cm,sne]  :=  MATM[cm,sne]
+ 
+ MATD_des[cm,sne] := MATD[cm,sne]
+ 
+ MATD_n[cm,sne] := MATD[cm,sne]
 
+ MATM_n[cm,sne] := MATM[cm,sne]
+ 
+ MAT_des[cm,sne] := MATD_des[cm, sne] + MATM_des[cm, sne]
+ 
+ verif_MAT[s] := MAT[s] - MATD[s]-MATM[s]
+ 
+ verif_MAT[cm,s] := MAT[cm,s] - MATD[cm,s]-MATM[cm,s]
+ 
+ 
+############
+#error 
 GRMATM[cdai,sne] := 0
 GRMATM[cdaicim,sepeg] := 0
-GRMATM[cservex,sne] := 0
+#GRMATM[cservex,sne] := 0
 GRMATM[cservex,sepeg] := 0
 GRCHM[cdai] := 0
 GRCHM[cservex] := 0
@@ -58,7 +87,8 @@ GRIAM[cservex,sne] := 0
 #GRDSM[cdai] := 0
 #GRDSM[cservex] := 0
 GREM[eno21,s] := 0
-
+GRMATM[cservex,sne] := STEADYSTATE(2, 1)
+GRMATM_n[cservex,sne] := STEADYSTATE(2, 1)
 
 #### TAUX DE MARGE DE THREEME V3 ####
 
@@ -177,9 +207,99 @@ CHOC_K := 0
 CHOC_PGF := 0 
 CHOC_L := 0
 CHOC_E := 0
-Choc_daccs_NIV :=0
+choc_fossile[ce2]:=0
 
 IMP_BUD_niv[sne]:=0
 IA_notionnel_noshock[sne]:=IA_n[sne]
 IA_notionnel[sne]:=IA_n[sne]
 IA_n_noshock[sne]:=IA_n[sne]
+IA_n_noshock_03[road] := IA_n_03[road]
+IA_n_noshock_12[road] := IA_n_12[road]
+
+
+#### CORRECTION FORMULE RATIO D'UTILISATION DES CAPACITES
+phi_n_K[sne] := phi_K[sne]
+phi_n_L[sne] := phi_L[sne]
+phi_n_E[sne] := phi_E[sne]
+phi_n_MAT[sne] := phi_MAT[sne]
+
+YCAP[sne] := Y[sne] / 0.8 ### calibrage de ThreeME V3
+CUR[sne] := Y[sne] / YCAP[sne]
+
+#### arbitrage consommation en volume
+EXP_CES_VOL := sum((EXP_n[co, h] - NEXP[co, h] ) on co)
+
+CHD_des[c] := CHD[c]
+
+CHM_des[c] := CHM[c]
+
+CH_des[c] := CHD_des[c] + CHM_des[c]
+
+CH_n[c] := CH[c]  
+
+CHD_n[c] := CHD[c]  
+
+CHM_n[c] := CHM[c]  
+
+GM_des[c] := GM[c]
+
+ GD_des[c]  := GD[c]
+                    
+ G_des[c] := GD_des[c] + GM_des[c]  
+ 
+ GM_n[c]  := GM[c]
+ 
+ GD_n[c] := GD[c]
+
+ G_n[c] := G[c]
+ 
+ IAM_d[c,sne] := IAM[c,sne]
+
+ IAD_d[c,sne]  := IAD[c,sne]
+                    
+ IA_d[c,sne] := IAD_d[c,sne] + IAM_d[c,sne]  
+ 
+ IAM_n[c,sne]  := IAM[c,sne]
+ 
+ IAD_n[c,sne] := IAD[c,sne]
+
+ IA_n[c,sne] := IA[c,sne]
+ 
+ GRMATM_CT[c,s] := STEADYSTATE(2, 1)
+                                                  
+ GRMATM_LT[c,s] := STEADYSTATE(2, 1)
+ 
+ MATM_CT[cm,sne] := MATM[cm,sne]
+ 
+ MATM_LT[cm,sne] := MATM[cm,sne]
+ 
+ GRCHM_CT[c] := STEADYSTATE(2, 1) 
+
+CHM_CT[c] := CHM[c] 
+                                                  
+GRCHM_LT[c] := STEADYSTATE(2, 1)
+
+CHM_LT[c] := CHM[c]  
+
+@over GRCHM[c] :=  STEADYSTATE(2, 1)
+
+ GRGM_CT[c] := STEADYSTATE(2, 1) 
+
+GM_CT[c] := GM[c] 
+                                                  
+GRGM_LT[c] := STEADYSTATE(2, 1)
+
+GM_LT[c] := GM[c]  
+
+@over GRGM[c] :=  STEADYSTATE(2, 1)  
+
+GRIAM_CT[cm,sne] := STEADYSTATE(2, 1)   
+
+IAM_CT[cm,sne] :=  IAM[cm,sne] 
+                                                  
+GRIAM_LT[cm,sne] := STEADYSTATE(2, 1)
+
+IAM_LT[cm,sne] := IAM[cm,sne] 
+
+@over GRIAM[cm,sne] :=  STEADYSTATE(2, 1)  
+  

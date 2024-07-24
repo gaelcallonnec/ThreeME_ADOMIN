@@ -1,0 +1,40 @@
+###################################################################
+########## uniquement pour faire cahier de variantes ##############
+######### (simulation des chocs DGT avec codes de l'Ademe) ########
+###################################################################
+
+
+#### Modification pour tableaux de sorties ####
+MAT = sum (MAT[s] if MAT[s]<>0 on s)
+PMAT = sum (PMAT[s]*MAT[s] if MAT[s]<>0 on s)
+
+# calcul salaire superbrut agrege
+w_s_spb  =  sum(W_S[s]*(1 + TCSE[s])*L_S[s]/L_s on s)
+w_spb = w_s_spb * L_s/L + w_se*L_se/L
+
+# calcul CL multiplié par PROG_L pour tableaux de resultats pour comparaison avec Mesange.
+CL_S_bis[s] =  CL_S[s]* PROG_L[s] if L_S[s] > 0
+CL_SE_bis[s] = CL_SE[s]* PROG_L[s] if L_SE[s] > 0
+CL_S_bis = (sum(CL_S_bis[s] * L_S[s] on s))/L_S
+CL_SE_bis = (sum(CL_SE_bis[s] * L_SE[s] on s))/L_SE
+CL_bis  * L  = ( CL_S_bis  * L_S  + CL_SE_bis  * L_SE )
+
+# ajout des intérêts au stock de dette des ménages (uniquement pour affichage, cahier de variantes)
+# pour le GOV ils sont inclus dans le deficit qui est utilise pour calculer la dette
+DEBT_REHAB_Val_tot[h,ecl] =  DEBT_REHAB_Val[h,ecl] + DEBT_REHAB_Val[h,ecl]{-1}*R_I_REHAB[h,ecl]{-1} 
+DEBT_NewB_Val_tot[h,ecl] = DEBT_NewB_Val[h,ecl] + DEBT_NewB_Val[h,ecl]{-1}*R_I_NewBUIL[h,ecl]{-1}  
+DEBT_AUTO_Val_tot[h,ecl] = DEBT_AUTO_Val[h,ecl] + DEBT_AUTO_Val[h,ecl]{-1}*R_I_AUTO[h,ecl]{-1}  
+
+
+#### AJOUTS CHOCS DGT POUR CAHIER DE VARIANTES####
+
+ @over PROG_K[s] = PROG_K[s]{-1} * (1 + GR_PROG_K[s] + CHOC_K + CHOC_PGF)
+ @over PROG_L[s] = PROG_L[s]{-1} * (1 + GR_PROG_L[s] + CHOC_L + CHOC_PGF)
+ @over PROG_E[s] = PROG_E[s]{-1} * (1 + GR_PROG_E[s] + CHOC_E + CHOC_PGF) 
+ 
+ @over Prog_L_03 = (@year<=2022) * (1 + GR_Prog_L_03 + CHOC_L + CHOC_PGF) * Prog_L_03{-1} + _
+              (@year>2022) * ( Prog_L_03{-1} * (1 + dlog(Prog_L_VP) + GR_Prog_L_03 + CHOC_L + CHOC_PGF))
+ 
+ @over PROG_K_03  = (@year<=2022) * PROG_K_03{-1}  * ( 1  + GR_PROG_K_03 + CHOC_K + CHOC_PGF) + _
+            (@year>2022) * ( Prog_K_03{-1} * (1 + dlog(Prog_K_VP) + GR_Prog_K_03 + CHOC_K + CHOC_PGF))
+ 

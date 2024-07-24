@@ -1,4 +1,6 @@
 ' ***************
+subroutine configuration
+
 ' Configuration
 
 ' Data calibrations to be used in the model run - file names are space-separated and found inside data\calibration
@@ -7,7 +9,7 @@
 
 ' Shocks to run, filenames are space-separated and found inside data\shocks
 ' Example: to run the SCEN_AMS2, use "SCEN_AMS2"
-%shocks = "SCEN_AMS2" 
+%shocks = %scen_number+"_SCEN_AMS2"   
 
 ' Set the begining of the sample
 %firstdate = "2004"
@@ -56,5 +58,7 @@
 %tabopt = ""
 ' Set the threshold under which the value is rounded to zero.
 !round0 = 1.0E-10
+
+EndSub
 
 

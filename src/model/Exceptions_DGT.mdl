@@ -5,7 +5,8 @@
 
 #### Modification pour tableaux de sorties ####
 MAT = sum (MAT[s] if MAT[s]<>0 on s)
-PMAT = sum (PMAT[s]*MAT[s] if MAT[s]<>0 on s)
+#PMAT = sum (PMAT[s]*MAT[s] if MAT[s]<>0 on s)    #error 
+PMAT*MAT = sum (PMAT[s]*MAT[s] if MAT[s]<>0 on s)    
 
 # calcul salaire superbrut agrege
 w_s_spb  =  sum(W_S[s]*(1 + TCSE[s])*L_S[s]/L_s on s)
@@ -17,6 +18,13 @@ CL_SE_bis[s] = CL_SE[s]* PROG_L[s] if L_SE[s] > 0
 CL_S_bis = (sum(CL_S_bis[s] * L_S[s] on s))/L_S
 CL_SE_bis = (sum(CL_SE_bis[s] * L_SE[s] on s))/L_SE
 CL_bis  * L  = ( CL_S_bis  * L_S  + CL_SE_bis  * L_SE )
+
+# ajout des intérêts au stock de dette des ménages (uniquement pour affichage, cahier de variantes)
+# pour le GOV ils sont inclus dans le deficit qui est utilise pour calculer la dette
+DEBT_REHAB_Val_tot[h,ecl] =  DEBT_REHAB_Val[h,ecl] + DEBT_REHAB_Val[h,ecl]{-1}*R_I_REHAB[h,ecl]{-1} 
+DEBT_NewB_Val_tot[h,ecl] = DEBT_NewB_Val[h,ecl] + DEBT_NewB_Val[h,ecl]{-1}*R_I_NewBUIL[h,ecl]{-1}  
+DEBT_AUTO_Val_tot[h,ecl] = DEBT_AUTO_Val[h,ecl] + DEBT_AUTO_Val[h,ecl]{-1}*R_I_AUTO[h,ecl]{-1}  
+
 
 #### AJOUTS CHOCS DGT POUR CAHIER DE VARIANTES####
 
@@ -39,6 +47,8 @@ CL_bis  * L  = ( CL_S_bis  * L_S  + CL_SE_bis  * L_SE )
 @over CK[s] = PK[s] * (Tdec[s] + RK[s] - d(PIA[s])/PIA[s]{-1}) if K[s] > 0
 # coût du K: P pour moins de cyclicité
 @over CK[sne] = PK[sne] * ( (1 + RK[sne])/(1+d(P)/P{-1}) - (1 - Tdec[sne])) if K[sne] > 0
+#@over CK[sne] = PIA[sne] * ( (1 + RK[sne])/(1+d(P)/P{-1}) - (1 - Tdec[sne])) if K[sne] > 0  #
+
 # avec PK par secteur, cyclique. 
 # avec PIA par secteur, un peu moins cyclique mais prix neg la premiere annee
 # avec P plus de reaction des prix a CT
@@ -140,7 +150,17 @@ Choc_DACCS_niv  = DACCS_cost * EMS_DACCS
 # Integration des chocs en niveau
 @over IA_notionnel_20 = IA_notionnel_noshock_20 + (@year > 2019) * (IMP_BUD_niv_20 + Choc_DACCS_niv + (I_MDE_20-@elem(I_MDE_20, 2018)) + (INV_Road-@elem(INV_Road, 2018)))
 
-@over dlog(IA_notionnel_noshock[road])  = ( @year <= 2019 )  * ( IA_notionnel[road] > 0 )  * dlog(IA_n[road])  + ( @year > 2019 ) * dlog(trucks[road] * PTrucks[road] + LUV[road] * PLUV[road])
+# exceptions transport marchandises
+# équation ADEME à réintégrer
+@over dlog(K_n[road])  = ( @year <= 2019 )  * ( K_n[road] > 0 )  * dlog(K[road])  + ( @year > 2019 ) * dlog(K[road] )
+
+# isolation des dynamiques de l'investissement en biens 03 et 12 des secteurs [road]
+dlog(IA_n_noshock_03[road]) = dlog(IA_n[road])
+dlog(IA_n_noshock_12[road]) = dlog(IA_n[road])
+ 
+# exogénéisation des investissements en biens 03 et 12 des secteurs [road]
+@over IA_n[road] = IA_n_noshock[road] + (@year>2019)*( - IA_n_noshock_03[road] + IA_n_03[road] - IA_n_noshock_12[road] + IA_n_12[road] + IMP_BUD_niv[road] + Choc_CSC_niv[road])
+
 
 #### PRIX DES IMPORTATIONS ####
 
@@ -182,69 +202,316 @@ GRPM[ce]=(0.74 * dlog(TC * PWD[ce]) - 0.97 * (log(PM[ce]{-1}) - 0.17 * log(PYQS_
 #consommations intermédiaires non-énergétiques
 #relation de long terme modifiée de manière à converger vers la propension moyenne à importer
 	#industrie ok 
- @over MATM[cdai,sne]  = (CIMexo[cdai,sne])*(@year<=2019) _
-                        + ((MATM[cdai,sne]{-1}*(1+GRMATM[cdai,sne])>0)*(MATM[cdai,sne]{-1}*(1+GRMATM[cdai,sne]))+(MATM[cdai,sne]{-1}*(1+GRMATM[cdai,sne])<=0)*0.00001)*(@year>2019) if MATM[cdai,sne] <> 0
- GRMATM[cdai,sne] = (0)*(@year<=2019)+(@year>2019)*(1.55*dlog(MAT[cdai,sne]) - 0.41*(log(MATM[cdai,sne]{-1}) - log(MAT[cdai,sne]{-1}) + 0.48*(log(PMATM[cdai]{-1})-log(PMATD[cdai]{-1})))) if MATM[cdai,sne] <> 0  			
- @over MATD[cdai,sne]  = (CIDexo[cdai,sne])*(@year<=2019) _
-                        + ((MAT[cdai,sne]-MATM[cdai,sne]>0)*(MAT[cdai,sne]-MATM[cdai,sne])+(MAT[cdai,sne]-MATM[cdai,sne]<=0)*0.0001)*(@year>2019) if MATD[cdai,sne] <> 0
+#error cette spécification ne garantit pas que MATM[c,s]<=MAT[c,s]
+# 
+ #@over MATM[cdai,sne]  = (CIMexo[cdai,sne])*(@year<=2019) _
+                        #+ ((MATM[cdai,sne]{-1}*(1+GRMATM[cdai,sne])>0)*(MATM[cdai,sne]{-1}*(1+GRMATM[cdai,sne]))+(MATM[cdai,sne]{-1}*(1+GRMATM[cdai,sne])<=0)*0.00001)*(@year>2019) if MATM[cdai,sne] <> 0
 
-		#dans AME-AMS
- @over MATD_12_13  = ( CIDexo_12_13 )  * ( @year <= 2019 )  + ( MATD_12_13{-1} * ( 1  + ( MAT_12_13 > 0 )  * ( d(MAT_12_13)  / MAT_12_13{-1}  + d(SUBST_MATD_12_13) ) ) - Prop_M_PAC * d(choc_PAC) * MATD_12_13{-1}/MAT_12_13{-1} ) * ( @year > 2019 )   
- @over MATM_12_13  = (CIMexo_12_13)*(@year<=2019) _
-                        + ((MAT_12_13-MATD_12_13>0)*(MAT_12_13-MATD_12_13)+(MAT_12_13-MATD_12_13<=0)*0.0001)*(@year>2019) if MATM_12_13 <> 0
- @over MATD_12_03  = (CIDexo_12_03)*(@year<=2019) + _
-                         (MATD_12_03{-1}*(1+(MAT_12_03>0)*(d(MAT_12_03)/MAT_12_03{-1} + d(SUBST_MATD_12_03)))-(1-AME_battery)*(CHD_03/CH_03)*d(Pbattery* Newauto_elec[h]/1000)) *(@year>2019) if MATD_12_03 <> 0
- @over MATM_12_03  = (CIMexo_12_03)*(@year<=2019) _
-                        + ((MAT_12_03-MATD_12_03>0)*(MAT_12_03-MATD_12_03)+(MAT_12_03-MATD_12_03<=0)*0.0001)*(@year>2019) if MATM_12_03 <> 0
+# GRMATM[cdai,sne] = (0)*(@year<=2019)+(@year>2019)*(1.55*dlog(MAT[cdai,sne]) - 0.41*(log(MATM[cdai,sne]{-1}) - log(MAT[cdai,sne]{-1}) + 0.48*(log(PMATM[cdai]{-1})-log(PMATD[cdai]{-1})))) if MATM[cdai,sne] <> 0 
+  			
+# 
+ #@over MATD[cdai,sne]  = (CIDexo[cdai,sne])*(@year<=2019) _
+                        #+ ((MAT[cdai,sne]-MATM[cdai,sne]>0)*(MAT[cdai,sne]-MATM[cdai,sne])+(MAT[cdai,sne]-MATM[cdai,sne]<=0)*0.0001)*(@year>2019) if MATD[cdai,sne] <> 0
+ 
+  @over MAT_n[cdai, sne] = (@year<=2019) * (CIexo[cdai,sne]) + (@year>2019) *(MAT_n[cdai, sne]{-1}*(1+dlog(Y[sne]) + (@year>2023)*(@year<=2030)*(Tech_coef_var[cdai,sne] - d(SUBST_MAT[sne])) + _
+                                 (@year>2030)*(Tech_coef_var_2[cdai,sne] - d(SUBST_MAT[sne])) + d(SUBST_MAT[sne]) )) if MAT[cdai, sne] <> 0
+ 
+ @over dlog(MAT_n[cm, sne]) = (@year<=2019) * dlog(CIexo[cm,sne]) + (@year>2019) *(dlog(Y[sne]) + (@year>2023)*(@year<=2030)*(Tech_coef_var[cm,sne] - d(SUBST_MAT[sne])) + _
+                                 (@year>2030)*(Tech_coef_var_2[cm,sne] - d(SUBST_MAT[sne])) + d(SUBST_MAT[sne]) ) if MAT[cm, sne] <> 0
+ 
+ @over MAT_n[sne] = sum(MAT_n[cm,sne] on cm)  
+ 
+ GRMATM[cm,sne] = (dlog(CIMexo[cm,sne]))*(@year<=2019)+(@year>2019)*(dlog(MAT_n[cm,sne]) + d(SUBST_MATD[cm,sne])) if MATM[cm,sne] <> 0
+ 
+ @over GRMATM[cdai,sne] = (0)*(@year<=2019)+(@year>2019)*(1.55*dlog(MAT_n[cdai,sne]) - 0.41*(log(MATM[cdai,sne]{-1}) - log(MAT[cdai,sne]{-1}) + 0.48*(log(PMATM[cdai]{-1})-log(PMATD[cdai]{-1})))) if MATM[cdai,sne] <> 0
+ #error cette spécification entraîne un bond des imports de 70% en 2020 
+ 
+ #dans Mesange equation de LT 
+ #@over GRMATM[cdai,sne] = (0)*(@year<=2019)+(@year>2019)*(dlog(MAT[cdai,sne]) + 0.88*d(MATM[cdai,sne]{-1}/MAT[cdai,sne]{-1}) - 0.44*d(log(PMATM[cdai]{-1})-log(PMATD[cdai]{-1}))) if MATM[cdai,sne] <> 0 
+ # dans mesange 
+   #@over GRMATM[cdai,sne] = (0)*(@year<=2019)+(@year>2019)*(0.06*dlog(MATM[cdai,sne]{-1}) + 1.42 * dlog(MAT[cdai,sne]) _ 
+                                                #- 0.11*(log(MATM[cdai,sne]{-1}) - log(MAT[cdai,sne]{-1}) - 0.88*(MATM[cdai]{-1}/MAT[cdai,sne]{-1}) _
+                                                 #+ 0.44*(log(PMATM[cdai]{-1})-log(PMATD[cdai]{-1})))) if MATM[cdai,sne] <> 0 
 
-	#services
- #gel@over MATM[cservex,sne] = (CIMexo[cservex,sne])*(@year<=2019) _
-                        #gel+ ((MATM[cservex,sne]{-1}*(1+GRMATM[cservex,sne])>0)*(MATM[cservex,sne]{-1}*(1+GRMATM[cservex,sne]))+(MATM[cservex,sne]{-1}*(1+GRMATM[cservex,sne])<=0)*0.00001)*(@year>2019) if MATM[cservex,sne] <> 0
- #gelGRMATM[cservex,sne] =	(0)*(@year<=2019)+(@year>2019)*(0.25*dlog(MATM[cservex,sne]{-1}) + 1.18*dlog(MAT[cservex,sne]) - 0,34*d(log(PMATM[cservex]{-1})-log(PMATD[cservex]{-1})) - 0.49*(log(MATM[cservex,sne]{-1}) - log(MAT[cservex,sne]{-1}) + 0.69*(log(PMATM[cservex]{-1})-log(PMATD[cservex]{-1})))) if MATM[cservex,sne] <> 0
- #gel@over MATD[cservex,sne]  = (CIDexo[cservex,sne])*(@year<=2019) _
-                        #gel+ ((MAT[cservex,sne]-MATM[cservex,sne]>0)*(MAT[cservex,sne]-MATM[cservex,sne])+(MAT[cservex,sne]-MATM[cservex,sne]<=0)*0.0001)*(@year>2019) if MATD[cservex,sne] <> 0
+# possibilité de poser le système suivant si choc est trop important  l'année de base : 
 
-#consommations intermédiaires énergétiques
-# attention certains EM sont exogenes: EM_24_01, ..., EM_24_06, EM_24_09, ...EM_24_20, EM_24_2303, EM_24_2308 car elles sont égales à 0
-
-# ne tourne pas pour le bien 21 (charbon), on l exclut de la modification
-# creation d une liste de biens energetiques sans bien 21 %list_com_e_no2
-
- @over EM[eno21,s] = ((E[eno21,s]-ED[eno21,s]>0)*(E[eno21,s]-ED[eno21,s])+(E[eno21,s]-ED[eno21,s]<=0)*0.0001)*(@year<=2019) _
-                        + ((EM[eno21,s]{-1}*(1+GREM[eno21,s])>0)*(EM[eno21,s]{-1}*(1+GREM[eno21,s]))+(EM[eno21,s]{-1}*(1+GREM[eno21,s])<=0)*0.00001)*(@year>2019) if EM[eno21,s] <> 0
- GREM[eno21,s] =	(0)*(@year<=2019)+(@year>2019)*(1.15*d(log(E[eno21,s])) - 0.96*(log(EM[eno21,s]{-1}) - log(E[eno21,s]{-1}) )) if EM[eno21,s] <> 0 
- @over ED[eno21,s]  = ((1+d(E[eno21,s])/E[eno21,s]{-1}+d(SUBST_ED[eno21,s]))*ED[eno21,s]{-1})*(@year<=2019) _
-                        + ((E[eno21,s]-EM[eno21,s]>0)*(E[eno21,s]-EM[eno21,s])+(E[eno21,s]-EM[eno21,s]<=0)*0.0001)*(@year>2019) if ED[eno21,s] <> 0
-
-
- @over dlog(EM[eno21,s])  = 1.36 * dlog(E[eno21,s]) - 0.55 * (log (EM[eno21,s]{-1}) - log(E[eno21,s]{-1}) -log(@elem(EM[eno21,s],%baseyear)/(@elem(E[eno21,s],%baseyear)))) if EM[eno21,s] <> 0 
- @over ED[eno21,s]  = ((E[eno21,s]-EM[eno21,s]>0)*(E[eno21,s]-EM[eno21,s])+(E[eno21,s]-EM[eno21,s]<=0)*0.0001) if ED[eno21,s] <> 0
+                                            
+GRMATM_CT[cdai,sne] = (dlog(CIMexo[cdai,sne]))*(@year<=2019)+(@year>2019)*((0.06 - 0.8)*dlog(MATM[cdai,sne]{-1}) + 1.42 * dlog(MAT[cdai,sne]))/(1-0.8) if MATM[cdai,sne] <> 0 
 
 
+@over GRMATM_CT[cdai,sne] = (dlog(CIMexo[cdai,sne]))*(@year<=2019)+(@year>2019)*((((0.06 - 0.8)*dlog(MATM[cdai,sne]{-1}) + 1.42 * dlog(MAT[cdai,sne]))/(1-0.8)>-1)* _
+                        (((0.06 - 0.8)*dlog(MATM[cdai,sne]{-1}) + 1.42 * dlog(MAT[cdai,sne]))/(1-0.8)) + (((0.06 - 0.8)*dlog(MATM[cdai,sne]{-1}) + _
+                         1.42 * dlog(MAT[cdai,sne]))/(1-0.8)<=-1)*-0.99) if MATM[cdai,sne] <> 0  
+                        # voir démo en bas de page.
+                        
+dlog(MATM_CT[cdai,sne]) = GRMATM_CT[cdai,sne] if MATM[cdai,sne] <> 0
+                                                  
+GRMATM_LT[cdai,sne] = (dlog(CIMexo[cdai,sne]))*(@year<=2019)+(@year>2019)*(dlog(MAT[cdai,sne]) + 0.88*d(MATM[cdai,sne]/MAT[cdai,sne])- 0.44*(dlog(PMATM[cdai])-dlog(PMATD[cdai]))) if MATM[cdai,sne] <> 0
+
+dlog(MATM_LT[cdai,sne]) = GRMATM_LT[cdai,sne]  if MATM[cdai,sne] <> 0
+
+@over GRMATM[cdai,sne] =  0.8 * dlog(MATM[cdai,sne]{-1}) + (1-0.8) * dlog(MATM_CT[cdai,sne]) - 0.11*(log(MATM[cdai,sne]{-1}) - log(MATM_LT[cdai,sne]{-1}))  if MATM[cdai,sne] <> 0  
+
+                                                 
+
+ MATM_des[cm,sne]  = (CIMexo[cm,sne])*(@year<=2019) _
+                        + (MATM[cm,sne]{-1}*(1+GRMATM[cm,sne]))*(@year>2019) if MATM_des[cm,sne] <> 0
+ 
+ MATD_des[cm,sne] = (CIDexo[cm,sne])*(@year<=2019) _
+                        + ((MAT_n[cm,sne]-MATM_des[cm,sne]>0) *(MAT_n[cm,sne]-MATM_des[cm,sne]) + _
+                         (MAT_n[cm,sne]-MATM_des[cm,sne]<=0) *( 0.01 ))*(@year>2019) if MATD_des[cm,sne] <> 0 
+ 
+ MAT_des[cm,sne] = MATD_des[cm, sne] + MATM_des[cm, sne]
+ 
+ @over MATM_n[cm,sne]  = (CIMexo[cm,sne])*(@year<=2019) _
+                        + ((MAT_n[cm,sne] - MATM_des[cm,sne]>0) * ((MATM_des[cm,sne]/MAT_des[cm,sne]) * MAT_n[cm,sne])  + _
+                         (MAT_n[cm,sne] - MATM_des[cm,sne]<=0) *(MAT_n[cm,sne] - 0.01  ))*(@year>2019) if MATM[cm,sne] <> 0 
+ 
+  @over MATD_n[cm,sne] = (CIDexo[cm,sne])*(@year<=2019) _
+                        + (MAT_n[cm,sne] - MATM_n[cm,sne])*(@year>2019) if MATD[cm,sne] <> 0 
+
+  @over MATD[cm,sne] = MATD_n[cm,sne]  
+  
+  @over MATM[cm,sne] = MATM_n[cm,sne]  
+  
+  @over MAT[cm, sne] = MATD[cm,sne] + MATM[cm,sne] 
+  
+  verif_MAT[cm,s] = MAT[cm,s] - MATD[cm,s]-MATM[cm,s]
+
+                       
+ 		# Exceptions dans AME-AMS
+
+ @over MATM_des_12_13  = (CIMexo_12_13)*(@year<=2019) _
+                       + (MATM_12_13{-1}*(1+GRMATM_12_13) + Prop_M_PAC * d(choc_PAC) * MATD_n_12_13{-1}/MAT_n_12_13{-1})*(@year>2019) if MATM_des_12_13] <> 0
+                        
+ @over MATM_des_12_03  = (CIMexo_12_03)*(@year<=2019) _
+                        + (MATM_12_03{-1}*(1+GRMATM_12_03) + (1-AME_battery)*(CHD_03/CH_03)*d(Pbattery* Newauto_elec[h]/1000))*(@year>2019) if MATM_des_12_13] <> 0                       
+	##services
+ #@over MATM[cservex,sne] = (CIMexo[cservex,sne])*(@year<=2019) _
+                        #+ ((MATM[cservex,sne]{-1}*(1+GRMATM[cservex,sne])>0)*(MATM[cservex,sne]{-1}*(1+GRMATM[cservex,sne]))+(MATM[cservex,sne]{-1}*(1+GRMATM[cservex,sne])<=0)*0.00001)*(@year>2019) if MATM[cservex,sne] <> 0
+ #GRMATM[cservex,sne] =	(0)*(@year<=2019)+(@year>2019)*(0.25*dlog(MATM[cservex,sne]{-1}) + 1.18*dlog(MAT[cservex,sne]) - 0.34*d(log(PMATM[cservex]{-1})-log(PMATD[cservex]{-1})) - 0.49*(log(MATM[cservex,sne]{-1}) - log(MAT[cservex,sne]{-1}) + 0.69*(log(PMATM[cservex]{-1})-log(PMATD[cservex]{-1})))) if MATM[cservex,sne] <> 0
+ #@over MATD[cservex,sne]  = (CIDexo[cservex,sne])*(@year<=2019) _
+                        #+ ((MAT[cservex,sne]-MATM[cservex,sne]>0)*(MAT[cservex,sne]-MATM[cservex,sne])+(MAT[cservex,sne]-MATM[cservex,sne]<=0)*0.0001)*(@year>2019) if MATD[cservex,sne] <> 0
+#dans mésange 
+
+#dlog(MATM[19,sne]) =	0.61*dlog(MATM[19,sne]{-1} -0.12 (log(MATM[19,sne]{-1})- log(MAT[19,sne]{-1}) + 0.29*(log(PMATM[19]{-1})-log(PMATD[19]{-1})) - 0.28 * MATM[19,sne]{-1}/MAT[19,sne]{-1}) if MATM[19,sne] <> 0
+
+GRMATM_CT[19,sne] = (dlog(CIMexo[19,sne]))*(@year<=2019)+(@year>2019)*((0.61 - 0.5)*dlog(MATM[19,sne]{-1}))/(1-0.5) if MATM[19,sne] <> 0 
+
+@over GRMATM_CT[19,sne] = (dlog(CIMexo[19,sne]))*(@year<=2019)+(@year>2019)*((((0.61 - 0.5)*dlog(MATM[19,sne]{-1}))/(1-0.5)>-1)* _
+                        ((0.61 - 0.5)*dlog(MATM[19,sne]{-1}))/(1-0.5) + (((0.61 - 0.5)*dlog(MATM[19,sne]{-1}))/(1-0.5)<=-1)*-0.99) if MATM[19,sne] <> 0
+
+
+dlog(MATM_CT[19,sne]) = GRMATM_CT[19,sne] if MATM[19,sne] <> 0
+                                                  
+GRMATM_LT[19,sne] = (dlog(CIMexo[19,sne]))*(@year<=2019)+(@year>2019)*(dlog(MAT[19,sne]) + 0.28*d(MATM[19,sne]/MAT[19,sne])- 0.29*(dlog(PMATM[19])-dlog(PMATD[19]))) if MATM[19,sne] <> 0
+
+dlog(MATM_LT[19,sne]) = GRMATM_LT[19,sne]  if MATM[19,sne] <> 0
+
+@over GRMATM[19,sne] =  0.5 * dlog(MATM[19,sne]{-1}) + (1-0.5) * dlog(MATM_CT[19,sne]) - 0.12*(log(MATM[19,sne]{-1}) - log(MATM_LT[19,sne]{-1}))  if MATM[19,sne] <> 0  
+
+# error avec la spécification du fichier exception_AME_AMS ci dessous, l'investissement peut être négatif en cas de baisse d'activité.
+
+ 
+#La nouvelle équation d'importation de service entraîne une diminution de la producton domestique du secteur (via ue baisse de CID) qui provoque des investissements négatifs. 
+        
+#@over IA_n_03[road]= IA_n_03[road]{-1}/(IA_n_03[road]{-1}+IA_n_12[road]{-1}) * PTrucks_cst[road] * New_Trucks[road] 
+
+#@over IA_n_12[road]= IA_n_12[road]{-1}/(IA_n_03[road]{-1}+IA_n_12[road]{-1}) * PTrucks_cst[road] * New_Trucks[road] 
+
+# pour éviter cet éceuil on écrit : 
+
+@over New_trucks[ce,road] = (Trucks[ce,road] - Trucks[ce,road]{-1}*(1-tdec[road])>0)*(Trucks[ce,road] - Trucks[ce,road]{-1}*(1-tdec[road])) + (Trucks[ce,road] - Trucks[ce,road]{-1}*(1-tdec[road])<=0)*01 where ce in %list_com_E \ 21 
+
+@over New_LUV[ce,road] = (LUV[ce,road] - LUV[ce,road]{-1}*(1-tdec[road])>0)*(LUV[ce,road] - LUV[ce,road]{-1}*(1-tdec[road])) + (LUV[ce,road] - LUV[ce,road]{-1}*(1-tdec[road])<=0)*0.1 where ce in %list_com_E \ 21
+
+# error l'équation des imports entraîne une modification conséquente du prix moyen pondéré des transports collectifs, si bien que le nombre de véhicules vendus s'écroule à partir de 2020. 
+       # le terme phi_elec_H01_CF est négétif en 2026  alors qu'il est égal à  =  phi_elec_e_H01_CF  / phi_elec_n_tot_H01 qui sont deux termes positifs. Pour renforcer la robustesse du modèle on écrit 
+
+@over phi_elec_H01_CF * phi_elec_n_tot_H01 =  phi_elec_e_H01_CF  
+@over phi_elec_e_H01_CF  = ( phi_elec_n_H01_CF > 0 )  * phi_elec_n_H01_CF  + ( phi_elec_n_H01_CF <= 0 )  * 0.001
+
+
+
+#gel#consommations intermédiaires énergétiques
+#gel# attention certains EM sont exogenes: EM_24_01, ..., EM_24_06, EM_24_09, ...EM_24_20, EM_24_2303, EM_24_2308 car elles sont égales à 0
+#gel
+#gel# ne tourne pas pour le bien 21 (charbon), on l exclut de la modification
+#gel# creation d une liste de biens energetiques sans bien 21 %list_com_e_no2
+#gel
+ #gel@over EM[eno21,s] = ((E[eno21,s]-ED[eno21,s]>0)*(E[eno21,s]-ED[eno21,s])+(E[eno21,s]-ED[eno21,s]<=0)*0.0001)*(@year<=2019) _
+                        #gel+ ((EM[eno21,s]{-1}*(1+GREM[eno21,s])>0)*(EM[eno21,s]{-1}*(1+GREM[eno21,s]))+(EM[eno21,s]{-1}*(1+GREM[eno21,s])<=0)*0.00001)*(@year>2019) if EM[eno21,s] <> 0
+ #gelGREM[eno21,s] =	(0)*(@year<=2019)+(@year>2019)*(1.15*d(log(E[eno21,s])) - 0.96*(log(EM[eno21,s]{-1}) - log(E[eno21,s]{-1}) )) if EM[eno21,s] <> 0 
+ #gel@over ED[eno21,s]  = ((1+d(E[eno21,s])/E[eno21,s]{-1}+d(SUBST_ED[eno21,s]))*ED[eno21,s]{-1})*(@year<=2019) _
+                        #gel+ ((E[eno21,s]-EM[eno21,s]>0)*(E[eno21,s]-EM[eno21,s])+(E[eno21,s]-EM[eno21,s]<=0)*0.0001)*(@year>2019) if ED[eno21,s] <> 0
+#gel
+#gel
+ #gel@over dlog(EM[eno21,s])  = 1.36 * dlog(E[eno21,s]) - 0.55 * (log (EM[eno21,s]{-1}) - log(E[eno21,s]{-1}) -log(@elem(EM[eno21,s],%baseyear)/(@elem(E[eno21,s],%baseyear)))) if EM[eno21,s] <> 0 
+ #gel@over ED[eno21,s]  = ((E[eno21,s]-EM[eno21,s]>0)*(E[eno21,s]-EM[eno21,s])+(E[eno21,s]-EM[eno21,s]<=0)*0.0001) if ED[eno21,s] <> 0
+#gel
+#gel
+#gel
 
 #conso des ménages
 	#dai
- @over CHM[cdai] = CHM[cdai]{-1}*((1 + (QMexo[cdai]>0)*(d(QMexo[cdai])/QMexo[cdai]{-1})))*(@year<=2019) _
-                        + ((CHM[cdai]{-1}*(1+GRCHM[cdai])>0)*(CHM[cdai]{-1}*(1+GRCHM[cdai]))+(CHM[cdai]{-1}*(1+GRCHM[cdai])<=0)*0.00001)*(@year>2019) if CHM[cdai] <> 0
- GRCHM[cdai] =	(0)*(@year<=2019)+(@year>2019)*(1.55*dlog(EXP[cdai]) - 0.41*(log(CHM[cdai]{-1}) - log(EXP[cdai]{-1}) + 0.48*(log(PCHM[cdai]{-1})-log(PCHD[cdai]{-1})))) if CHM[cdai] <> 0
- @over CHD[cdai]  = ((EXPexo[cdai]-CHM[cdai] > 0) * (EXPexo[cdai] - CHM[cdai]) + (EXPexo[cdai] - CHM[cdai] =< 0) * (0.00001))*(@year<=2019) _
-                    + ((EXP[cdai] - CHM[cdai]>0)*(EXP[cdai] - CHM[cdai])+(EXP[cdai] - CHM[cdai]<=0)*0.00001)*(@year>2019)
+    
+# error, cette spécification ne garantit pas que CHM>CH
 
-	#gel#services
- #gel@over CHM[cservex] = CHM[cservex]{-1}*((1 + (QMexo[cservex]>0)*(d(QMexo[cservex])/QMexo[cservex]{-1})))*(@year<=2019) _
-                        #gel+ ((CHM[cservex]{-1}*(1+GRCHM[cservex])>0)*(CHM[cservex]{-1}*(1+GRCHM[cservex]))+(CHM[cservex]{-1}*(1+GRCHM[cservex])<=0)*0.00001)*(@year>2019) if CHM[cservex] <> 0
- #gelGRCHM[cservex] =	(0)*(@year<=2019)+(@year>2019)*(0.25*dlog(CHM[cservex]{-1}) + 1.18*dlog(EXP[cservex]) -0.43*d(log(PCHM[cservex]{-1})-log(PCHD[cservex]{-1})) - 0.49*(log(CHM[cservex]{-1}) - log(EXP[cservex]{-1}) + 0.69*(log(PCHM[cservex]{-1})-log(PCHD[cservex]{-1})))) if CHM[cservex] <> 0
- #gel@over CHD[cservex]  = ((EXPexo[cservex]-CHM[cservex] > 0) * (EXPexo[cservex] - CHM[cservex]) + (EXPexo[cservex] - CHM[cservex] =< 0) * (0.00001))*(@year<=2019) _
-                    #gel+ ((EXP[cservex] - CHM[cservex]>0)*(EXP[cservex] - CHM[cservex])+(EXP[cservex] - CHM[cservex]<=0)*0.00001)*(@year>2019)
+# @over CHM[cdai] = CHM[cdai]{-1}*((1 + (QMexo[cdai]>0)*(d(QMexo[cdai])/QMexo[cdai]{-1})))*(@year<=2019) _
+#                        + ((CHM[cdai]{-1}*(1+GRCHM[cdai])>0)*(CHM[cdai]{-1}*(1+GRCHM[cdai]))+(CHM[cdai]{-1}*(1+GRCHM[cdai])<=0)*0.00001)*(@year>2019) if CHM[cdai] <> 0
+ 
+  #@over CHD[cdai]  = ((EXPexo[cdai]-CHM[cdai] > 0) * (EXPexo[cdai] - CHM[cdai]) + (EXPexo[cdai] - CHM[cdai] =< 0) * (0.00001))*(@year<=2019) _
+ #                   + ((EXP[cdai] - CHM[cdai]>0)*(EXP[cdai] - CHM[cdai])+(EXP[cdai] - CHM[cdai]<=0)*0.00001)*(@year>2019) 
+ 
+ # GRCHM[cdai] =	(0)*(@year<=2019)+(@year>2019)*(1.55*dlog(EXP[cdai]) - 0.41*(log(CHM[cdai]{-1}) - log(EXP[cdai]{-1}) + 0.48*(log(PCHM[cdai]{-1})-log(PCHD[cdai]{-1})))) if CHM[cdai] <> 0
+
+GRCHM_CT[cdai] = (dlog(QMexo[cdai]))*(@year<=2019)+(@year>2019)*((0.06 - 0.8)*dlog(CHM[cdai]{-1}) + 1.42 * dlog(CH[cdai]))/(1-0.8) if CHM[cdai] <> 0 
+
+@over GRCHM_CT[cdai] = (dlog(QMexo[cdai]))*(@year<=2019)+(@year>2019)*((((0.06 - 0.8)*dlog(CHM[cdai]{-1}) + 1.42 * dlog(CH[cdai]))/(1-0.8)>-1)* _         
+                ((0.06 - 0.8)*dlog(CHM[cdai]{-1}) + 1.42 * dlog(CH[cdai]))/(1-0.8) + (((0.06 - 0.8)*dlog(CHM[cdai]{-1}) + 1.42 * dlog(CH[cdai]))/(1-0.8)<=-1)*-0.99)  if CHM[cdai] <> 0 
+
+
+dlog(CHM_CT[cdai]) = GRCHM_CT[cdai] if CHM[cdai] <> 0
+                                                  
+GRCHM_LT[cdai] = (dlog(QMexo[cdai]))*(@year<=2019)+(@year>2019)*(dlog(EXP[cdai]) + 0.88*d(CHM[cdai]/EXP[cdai])- 0.44*(dlog(PCHM[cdai])-dlog(PCHD[cdai]))) if CHM[cdai] <> 0
+
+dlog(CHM_LT[cdai]) = GRCHM_LT[cdai]  if CHM[cdai] <> 0
+
+@over GRCHM[cdai] =  0.8 * dlog(CHM[cdai]{-1}) + (1-0.8) * dlog(CHM_CT[cdai]) - 0.11*(log(CHM[cdai]{-1}) - log(CHM_LT[cdai]{-1}))  if CHM[cdai] <> 0  
+
+ 
+ @over CHM_des[cdai] = CHM[cdai]{-1}*((1 + (QMexo[cdai]>0)*(d(QMexo[cdai])/QMexo[cdai]{-1})))*(@year<=2019) _
+                        + ((CHM[cdai]{-1}*(1+GRCHM[cdai])>0)*(CHM[cdai]{-1}*(1+GRCHM[cdai]))+(CHM[cdai]{-1}*(1+GRCHM[cdai])<=0)*0.00001)*(@year>2019) if CHM[cdai] <> 0
+
+ @over CHD_des[cdai]  = ((EXPexo[cdai]-CHM[cdai] > 0) * (EXPexo[cdai] - CHM[cdai]) + (EXPexo[cdai] - CHM[cdai] =< 0) * (0.00001))*(@year<=2019) _
+                    + ((EXP[cdai] - CHM_des[cdai]>0)*(EXP[cdai] - CHM_des[cdai])+(EXP[cdai] - CHM_des[cdai]<=0)*0.00001)*(@year>2019) if CHD_des[cdai] <> 0
+                    
+ CH_des[cdai] = CHD_des[cdai] + CHM_des[cdai]  
+ 
+ @over CHM_n[cdai]  = CHM[cdai]{-1}*((1 + (QMexo[cdai]>0)*(d(QMexo[cdai])/QMexo[cdai]{-1})))*(@year<=2019) _
+                        + ((CH_n[cdai] - CHM_des[cdai]>0) * ((CHM_des[cdai]/CH_des[cdai]) * CH_n[cdai])  + _
+                         (CH_n[cdai] - CHM_des[cdai]<=0) *(CH_n[cdai] - 0.00001  ))*(@year>2019) if CHM[cdai] <> 0 
+ 
+  @over CHD_n[cdai] = ((EXPexo[cdai]-CHM[cdai] > 0) * (EXPexo[cdai] - CHM[cdai]) + (EXPexo[cdai] - CHM[cdai] =< 0) * (0.00001))*(@year<=2019) _
+                        + (CH_n[cdai] - CHM_n[cdai])*(@year>2019) if CHD[cdai] <> 0 
+
+  @over CHD[cdai] = CHD_n[cdai]  
+  
+  @over CHM[cdai] = CHM_n[cdai]  
+ 
+       
+	#services 
+ 
+# GRCHM_19 =	(0)*(@year<=2019)+(@year>2019)*(1.55*dlog(EXP_19) - 0.41*(log(CHM_19{-1}) - log(EXP_19{-1}) + 0.48*(log(PCHM_19{-1})-log(PCHD_19{-1})))) if CHM_19 <> 0
+
+GRCHM_CT_19 = (dlog(QMexo_19))*(@year<=2019)+(@year>2019)*((0.61 - 0.5)*dlog(CHM_19{-1}) + 1.42 * dlog(CH_19))/(1-0.5) if CHM_19 <> 0 
+
+@over GRCHM_CT_19 = (dlog(QMexo_19))*(@year<=2019)+(@year>2019)*((((0.61 - 0.5)*dlog(CHM_19{-1}) + 1.42 * dlog(CH_19))/(1-0.5)>-1)*_         
+                    ((0.61 - 0.5)*dlog(CHM_19{-1}) + 1.42 * dlog(CH_19))/(1-0.5) + (((0.61 - 0.5)*dlog(CHM_19{-1}) + 1.42 * dlog(CH_19))/(1-0.5)<=-1)*-0.99)  if CHM_19 <> 0 
+                    
+dlog(CHM_CT_19) = GRCHM_CT_19 if CHM_19 <> 0
+                                                  
+GRCHM_LT_19 = (dlog(QMexo_19))*(@year<=2019)+(@year>2019)*(dlog(EXP_19) + 0.28*d(CHM_19/EXP_19)- 0.29*(dlog(PCHM_19)-dlog(PCHD_19))) if CHM_19 <> 0
+
+dlog(CHM_LT_19) = GRCHM_LT_19  if CHM_19 <> 0
+
+@over GRCHM_19 =  0.8 * dlog(CHM_19{-1}) + (1-0.8) * dlog(CHM_CT_19) - 0.12*(log(CHM_19{-1}) - log(CHM_LT_19{-1}))  if CHM_19 <> 0  
+
+ @over CHM_des_19 = CHM_19{-1}*((1 + (QMexo_19>0)*(d(QMexo_19)/QMexo_19{-1})))*(@year<=2019) _
+                        + ((CHM_19{-1}*(1+GRCHM_19)>0)*(CHM_19{-1}*(1+GRCHM_19))+(CHM_19{-1}*(1+GRCHM_19)<=0)*0.00001)*(@year>2019) if CHM_19 <> 0
+  
+ @over CHD_des_19  = ((EXPexo_19-CHM_19 > 0) * (EXPexo_19 - CHM_19) + (EXPexo_19 - CHM_19 =< 0) * (0.00001))*(@year<=2019) _
+                    + ((EXP_19 - CHM_des_19>0)*(EXP_19 - CHM_des_19)+(EXP_19 - CHM_des_19<=0)*0.00001)*(@year>2019) if CHD_des_19 <> 0
+                    
+ CH_des_19 = CHD_des_19 + CHM_des_19  
+ 
+ @over CHM_n_19  = CHM_19{-1}*((1 + (QMexo_19>0)*(d(QMexo_19)/QMexo_19{-1})))*(@year<=2019) _
+                        + ((CH_n_19 - CHM_des_19>0) * ((CHM_des_19/CH_des_19) * CH_n_19)  + _
+                         (CH_n_19 - CHM_des_19<=0) *(CH_n_19 - 0.00001  ))*(@year>2019) if CHM_19 <> 0 
+ 
+  @over CHD_n_19 = ((EXPexo_19-CHM_19 > 0) * (EXPexo_19 - CHM_19) + (EXPexo_19 - CHM_19 =< 0) * (0.00001))*(@year<=2019) _
+                        + (CH_n_19 - CHM_n_19)*(@year>2019) if CHD_19 <> 0 
+
+  @over CHD_19 = CHD_n_19   
+  @over CHM_19 = CHM_n_19  
+
+# equations de cservex à tester
+#gel# GRCHM_19 =	(0)*(@year<=2019)+(@year>2019)*(1.55*dlog(EXP_19) - 0.41*(log(CHM_19{-1}) - log(EXP_19{-1}) + 0.48*(log(PCHM_19{-1})-log(PCHD_19{-1})))) if CHM_19 <> 0
 #gel
-	#gel#énergies
+#gel@over GRCHM_CT[cservex] = (dlog(QMexo[cservex]))*(@year<=2019)+(@year>2019)*((0.61 - 0.5)*dlog(CHM[cservex]{-1}) + 1.42 * dlog(CH[cservex]))/(1-0.5) if CHM[cservex] <> 0 
+#gel
+#gel@over GRCHM_CT[cservex] = (dlog(QMexo[cservex]))*(@year<=2019)+(@year>2019)*((((0.61 - 0.5)*dlog(CHM[cservex]{-1}) + 1.42 * dlog(CH[cservex]))/(1-0.5)>-1)*_         
+                    #gel((0.61 - 0.5)*dlog(CHM[cservex]{-1}) + 1.42 * dlog(CH[cservex]))/(1-0.5) + (((0.61 - 0.5)*dlog(CHM[cservex]{-1}) + 1.42 * dlog(CH[cservex]))/(1-0.5)<=-1)*-0.99)  if CHM[cservex] <> 0 
+#gel                    
+#gel@overdlog(CHM_CT[cservex]) = GRCHM_CT[cservex] if CHM[cservex] <> 0
+#gel                                                 
+#gel@overGRCHM_LT[cservex] = (dlog(QMexo[cservex]))*(@year<=2019)+(@year>2019)*(dlog(EXP[cservex]) + 0.28*d(CHM[cservex]/EXP[cservex])- 0.29*(dlog(PCHM[cservex])-dlog(PCHD[cservex]))) if CHM[cservex] <> 0
+#gel
+#gel@overdlog(CHM_LT[cservex]) = GRCHM_LT[cservex]  if CHM[cservex] <> 0
+#gel
+#gel@over GRCHM[cservex] =  0.8 * dlog(CHM[cservex]{-1}) + (1-0.8) * dlog(CHM_CT[cservex]) - 0.12*(log(CHM[cservex]{-1}) - log(CHM_LT[cservex]{-1}))  if CHM[cservex] <> 0  
+#gel
+ #gel@over CHM_des[cservex] = CHM[cservex]{-1}*((1 + (QMexo[cservex]>0)*(d(QMexo[cservex])/QMexo[cservex]{-1})))*(@year<=2019) _
+                        #gel+ ((CHM[cservex]{-1}*(1+GRCHM[cservex])>0)*(CHM[cservex]{-1}*(1+GRCHM[cservex]))+(CHM[cservex]{-1}*(1+GRCHM[cservex])<=0)*0.00001)*(@year>2019) if CHM[cservex] <> 0
+#gel  
+ #gel@over CHD_des[cservex]  = ((EXPexo[cservex]-CHM[cservex] > 0) * (EXPexo[cservex] - CHM[cservex]) + (EXPexo[cservex] - CHM[cservex] =< 0) * (0.00001))*(@year<=2019) _
+                    #gel+ ((EXP[cservex] - CHM_des[cservex]>0)*(EXP[cservex] - CHM_des[cservex])+(EXP[cservex] - CHM_des[cservex]<=0)*0.00001)*(@year>2019) if CHD_des[cservex] <> 0
+#gel                    
+ #gel@over CH_des[cservex] = CHD_des[cservex] + CHM_des[cservex]  
+#gel 
+ #gel@over CHM_n[cservex]  = CHM[cservex]{-1}*((1 + (QMexo[cservex]>0)*(d(QMexo[cservex])/QMexo[cservex]{-1})))*(@year<=2019) _
+                        #gel+ ((CH_n[cservex] - CHM_des[cservex]>0) * ((CHM_des[cservex]/CH_des[cservex]) * CH_n[cservex])  + _
+                         #gel(CH_n[cservex] - CHM_des[cservex]<=0) *(CH_n[cservex] - 0.00001  ))*(@year>2019) if CHM[cservex] <> 0 
+#gel 
+  #gel@over CHD_n[cservex] = ((EXPexo[cservex]-CHM[cservex] > 0) * (EXPexo[cservex] - CHM[cservex]) + (EXPexo[cservex] - CHM[cservex] =< 0) * (0.00001))*(@year<=2019) _
+                        #gel+ (CH_n[cservex] - CHM_n[cservex])*(@year>2019) if CHD[cservex] <> 0 
+#gel
+  #gel@over CHD[cservex] = CHD_n[cservex]   
+  #gel@over CHM[cservex] = CHM_n[cservex]	  
+    #énergies bug 
  #gel@over CHM[cepeg] = ((EXP[cepeg]  - CHD[cepeg]>0)  * (EXP[cepeg] - CHD[cepeg])  + (EXP[cepeg]  - CHD[cepeg]<=0)  * (0.0001))*(@year<=2019) _
                         #gel+ ((CHM[cepeg]{-1}*(1+GRCHM[cepeg])>0)*(CHM[cepeg]{-1}*(1+GRCHM[cepeg]))+(CHM[cepeg]{-1}*(1+GRCHM[cepeg])<=0)*0.00001)*(@year>2019) if CHM[cepeg] <> 0
- #gelGRCHM[cepeg] =	0*(@year<=2019) + (@year>2019)*(1.15*dlog(EXP[cepeg]) - 0.96*(log(CHM[cepeg]{-1}) - log(EXP[cepeg]{-1}) )) if CHM[cepeg] <> 0
- #gel@over CHD[cepeg]  = ((1+((d(EXP[cepeg]))/(EXP[cepeg]{-1}) + d(SUBST_CHD[cepeg]))) * CHD[cepeg]{-1})*(@year<=2019) _
+  #gel@over CHD[cepeg]  = ((1+((d(EXP[cepeg]))/(EXP[cepeg]{-1}) + d(SUBST_CHD[cepeg]))) * CHD[cepeg]{-1})*(@year<=2019) _
                     #gel+ ((EXP[cepeg] - CHM[cepeg]>0)*(EXP[cepeg] - CHM[cepeg])+(EXP[cepeg] - CHM[cepeg]<=0)*0.00001)*(@year>2019) if CHD[cepeg] <> 0
 #gel
+ #gelGRCHM[cepeg] =	0*(@year<=2019) + (@year>2019)*(1.15*dlog(EXP[cepeg]) - 0.96*(log(CHM[cepeg]{-1}) - log(EXP[cepeg]{-1}) )) if CHM[cepeg] <> 0
 #gel
+ #gel@over GRCHM[cepeg] =	((QM[cepeg]>0)*(d(QM[cepeg])/QM[cepeg]{-1}))*(@year<=2019)+(@year>2019)*( 1.15*dlog(EXP[cepeg]) - 0.96*(log(CHM[cepeg]{-1}) - log(EXP[cepeg]{-1}) )) if CHM[cepeg] <> 0
+#gel
+#gel 
+ #gel# dans mesange 
+   #gel#@over GRCHM[cepeg] = (0)*(@year<=2019)+(@year>2019)*(0*dlog(CHM[cepeg]{-1}) + 1.36 * dlog(EXP[cepeg]) _ 
+                                                #gel#- 0.55*(log(CHM[cepeg]{-1}) - log(EXP[cepeg]{-1})) if CHM[cepeg] <> 0 
+#gel
+#gelGRCHM_CT[cepeg] = (dlog(QM[cepeg]))*(@year<=2019)+(@year>2019)*((0 - 0.5)*dlog(CHM[cepeg]{-1}) + 1.36 * dlog(EXP[cepeg]))/(1-0.5) if CHM[cepeg] <> 0 
+#gel
+#geldlog(CHM_CT[cepeg]) = GRCHM_CT[cepeg] if CHM[cepeg] <> 0
+#gel                                                  
+#gelGRCHM_LT[cepeg] = (dlog(QM[cepeg]))*(@year<=2019)+(@year>2019)*(dlog(EXP[cepeg]) ) if CHM[cepeg] <> 0
+#gel
+#geldlog(CHM_LT[cepeg]) = GRCHM_LT[cepeg]  if CHM[cepeg] <> 0
+#gel
+#gel@over GRCHM[cepeg] =  0.8 * dlog(CHM[cepeg]{-1}) + (1-0.8) * dlog(CHM_CT[cepeg]) - 0.55*(log(CHM[cepeg]{-1}) - log(CHM_LT[cepeg]{-1}))  if CHM[cepeg] <> 0  
+#gel
+ #gel@over CHM_des[cepeg] = CHM[cepeg]{-1}*((1 + (QM[cepeg]>0)*(d(QM[cepeg])/QM[cepeg]{-1})))*(@year<=2019) _
+                       #gel+ ((CHM[cepeg]{-1}*(1+GRCHM[cepeg])>0)*(CHM[cepeg]{-1}*(1+GRCHM[cepeg]))+(CHM[cepeg]{-1}*(1+GRCHM[cepeg])<=0)*0.00001)*(@year>2019) if CHM[cepeg] <> 0
+#gel  
+ #gel@over CHD_des[cepeg]  = ((EXP[cepeg]-CHM[cepeg] > 0) * (EXP[cepeg] - CHM[cepeg]) + (EXP[cepeg] - CHM[cepeg] =< 0) * (0.00001))*(@year<=2019) _
+                    #gel+ ((EXP[cepeg] - CHM_des[cepeg]>0)*(EXP[cepeg] - CHM_des[cepeg])+(EXP[cepeg] - CHM_des[cepeg]<=0)*0.01)*(@year>2019) if CHD_des[cepeg] <> 0
+#gel                    
+ #gelCH_des[cepeg] = CHD_des[cepeg] + CHM_des[cepeg]  
+#gel 
+ #gel@over CHM_n[cepeg]  = CHM[cepeg]{-1}*((1 + (QM[cepeg]>0)*(d(QM[cepeg])/QM[cepeg]{-1})))*(@year<=2019) _
+                        #gel+ ((CH_n[cepeg] - CHM_des[cepeg]>0) * ((CHM_des[cepeg]/CH_des[cepeg]) * CH_n[cepeg])  + _
+                         #gel(CH_n[cepeg] - CHM_des[cepeg]<=0) *(CH_n[cepeg] - 0.01  ))*(@year>2019) if CHM[cepeg] <> 0 
+#gel 
+  #gel@over CHD_n[cepeg] = ((EXP[cepeg]-CHM[cepeg] > 0) * (EXP[cepeg] - CHM[cepeg]) + (EXP[cepeg] - CHM[cepeg] =< 0) * (0.00001))*(@year<=2019) _
+                        #gel+ (CH_n[cepeg] - CHM_n[cepeg])*(@year>2019) if CHD[cepeg] <> 0 
+#gel
+  #gel@over CHD[cepeg] = CHD_n[cepeg]  # possibilité de mettre des retards. 
+  #gel@over CHM[cepeg] = CHM_n[cepeg]  # possibilité de mettre des retards 
+#gel  
+  #gelbug en 2044 AMS
 #conso publique
 	#dai
  @over GM[cdai] = GM[cdai]{-1}*((1 + (QMexo[cdai]>0)*(d(QMexo[cdai])/QMexo[cdai]{-1})))*(@year<=2019) _
@@ -252,152 +519,387 @@ GRPM[ce]=(0.74 * dlog(TC * PWD[ce]) - 0.97 * (log(PM[ce]{-1}) - 0.17 * log(PYQS_
  GRGM[cdai] =	(0)*(@year<=2019)+(@year>2019)*(1.55*dlog(EXPG[cdai]) - 0.41*(log(GM[cdai]{-1}) - log(EXPG[cdai]{-1}) + 0.48*(log(PGM[cdai]{-1})-log(PGD[cdai]{-1})))) if GM[cdai] <> 0
  @over GD[cdai]  = (EXPG[cdai] - GM[cdai]>0)*(EXPG[cdai] - GM[cdai])+(EXPG[cdai] - GM[cdai]<=0)*0.00001
 
-	#services
- @over GM[cservex] = GM[cservex]{-1}*((1 + (QMexo[cservex]>0)*(d(QMexo[cservex])/QMexo[cservex]{-1})))*(@year<=2019) _
-                        + ((GM[cservex]{-1}*(1+GRGM[cservex])>0)*(GM[cservex]{-1}*(1+GRGM[cservex]))+(GM[cservex]{-1}*(1+GRGM[cservex])<=0)*0.00001)*(@year>2019) if GM[cservex] <> 0
- GRGM[cservex] =	(0)*(@year<=2019)+(@year>2019)*(0.25*dlog(GM[cservex]{-1}) + 1.18*dlog(EXPG[cservex]) - 0.34*(log(PGM[cservex]{-1})-log(PGD[cservex]{-1})) - 0.49*(log(GM[cservex]{-1}) - log(EXPG[cservex]{-1}) + 0.69*(log(PGM[cservex]{-1})-log(PGD[cservex]{-1})))) if GM[cservex] <> 0
- @over GD[cservex]  = (EXPG[cservex] - GM[cservex]>0)*(EXPG[cservex] - GM[cservex])+(EXPG[cservex] - GM[cservex]<=0)*0.00001
+ GRGM_CT[cdai] = (dlog(QMexo[cdai]))*(@year<=2019)+(@year>2019)*((0.06 - 0.8)*dlog(GM[cdai]{-1}) + 1.42 * dlog(EXPG[cdai]{-1}))/(1-0.8) if GM[cdai] <> 0 
 
-	#énergies
+@over GRGM_CT[cdai] = (dlog(QMexo[cdai]))*(@year<=2019)+(@year>2019)*((((0.06 - 0.8)*dlog(GM[cdai]{-1}) + 1.42 * dlog(EXPG[cdai]{-1}))/(1-0.8)>-1)* _
+                ((0.06 - 0.8)*dlog(GM[cdai]{-1}) + 1.42 * dlog(EXPG[cdai]{-1}))/(1-0.8) +  (((0.06 - 0.8)*dlog(GM[cdai]{-1}) + 1.42 * dlog(EXPG[cdai]{-1}))/(1-0.8)<=1)*-0.99)    if GM[cdai] <> 0 
+ 
+dlog(GM_CT[cdai]) = GRGM_CT[cdai] if GM[cdai] <> 0
+                                                  
+GRGM_LT[cdai] = (dlog(QMexo[cdai]))*(@year<=2019)+(@year>2019)*(dlog(EXPG[cdai]) + 0.88*d(GM[cdai]/EXPG[cdai])- 0.44*(dlog(PGM[cdai])-dlog(PGD[cdai]))) if GM[cdai] <> 0
+
+dlog(GM_LT[cdai]) = GRGM_LT[cdai]  if GM[cdai] <> 0
+
+@over GRGM[cdai] =  0.8 * dlog(GM[cdai]{-1}) + (1-0.8) * dlog(GM_CT[cdai]) - 0.11*(log(GM[cdai]{-1}) - log(GM_LT[cdai]{-1}))  if GM[cdai] <> 0  
+
+
+ @over GM_des[cdai] = GM[cdai]{-1}*((1 + (QMexo[cdai]>0)*(d(QMexo[cdai])/QMexo[cdai]{-1})))*(@year<=2019) _
+                        + ((GM[cdai]{-1}*(1+GRGM[cdai])>0)*(GM[cdai]{-1}*(1+GRGM[cdai]))+(GM[cdai]{-1}*(1+GRGM[cdai])<=0)*0.00001)*(@year>2019) if GM[cdai] <> 0
+
+ @over GD_des[cdai]  = ((EXPGexo[cdai]-GM[cdai] > 0) * (EXPGexo[cdai] - GM[cdai]) + (EXPGexo[cdai] - GM[cdai] =< 0) * (0.00001))*(@year<=2019) _
+                    + ((EXPG[cdai] - GM_des[cdai]>0)*(EXPG[cdai] - GM_des[cdai])+(EXPG[cdai] - GM_des[cdai]<=0)*0.00001)*(@year>2019) if GD_des[cdai] <> 0
+                    
+ G_des[cdai] = GD_des[cdai] + GM_des[cdai]  
+ 
+ @over GM_n[cdai]  = GM[cdai]{-1}*((1 + (QMexo[cdai]>0)*(d(QMexo[cdai])/QMexo[cdai]{-1})))*(@year<=2019) _
+                        + ((G_n[cdai] - GM_des[cdai]>0) * ((GM_des[cdai]/G_des[cdai]) * G_n[cdai])  + _
+                         (G_n[cdai] - GM_des[cdai]<=0) *(G_n[cdai] - 0.00001  ))*(@year>2019) if GM[cdai] <> 0 
+ 
+  @over GD_n[cdai] = ((EXPGexo[cdai]-GM[cdai] > 0) * (EXPGexo[cdai] - GM[cdai]) + (EXPGexo[cdai] - GM[cdai] =< 0) * (0.00001))*(@year<=2019) _
+                        + (G_n[cdai] - GM_n[cdai])*(@year>2019) if GD[cdai] <> 0 
+
+  @over GD[cdai] = GD_n[cdai]  # possibilité de mettre des retards. Avec cette spécification, 
+  
+  @over GM[cdai] = GM_n[cdai]  # possibilité de mettre des retards
+
+	#gel#services #bug en 2025 AMS
+ #gel@over GM[cservex] = GM[cservex]{-1}*((1 + (QMexo[cservex]>0)*(d(QMexo[cservex])/QMexo[cservex]{-1})))*(@year<=2019) _
+                        #gel+ ((GM[cservex]{-1}*(1+GRGM[cservex])>0)*(GM[cservex]{-1}*(1+GRGM[cservex]))+(GM[cservex]{-1}*(1+GRGM[cservex])<=0)*0.00001)*(@year>2019) if GM[cservex] <> 0
+ #gelGRGM[cservex] =	(0)*(@year<=2019)+(@year>2019)*(0.25*dlog(GM[cservex]{-1}) + 1.18*dlog(EXPG[cservex]) - 0.34*(log(PGM[cservex]{-1})-log(PGD[cservex]{-1})) - 0.49*(log(GM[cservex]{-1}) - log(EXPG[cservex]{-1}) + 0.69*(log(PGM[cservex]{-1})-log(PGD[cservex]{-1})))) if GM[cservex] <> 0
+ #gel@over GD[cservex]  = (EXPG[cservex] - GM[cservex]>0)*(EXPG[cservex] - GM[cservex])+(EXPG[cservex] - GM[cservex]<=0)*0.00001
+	 
+ GRGM[cservex] =	(0)*(@year<=2019)+(@year>2019)*(0.25*dlog(GM[cservex]{-1}) + 1.18*dlog(EXPG[cservex]) - 0.34*(log(PGM[cservex]{-1})-log(PGD[cservex]{-1})) - 0.49*(log(GM[cservex]{-1}) - log(EXPG[cservex]{-1}) + 0.69*(log(PGM[cservex]{-1})-log(PGD[cservex]{-1})))) if GM[cservex] <> 0
+ 
+ GRGM_CT[cservex] = (dlog(QMexo[cservex]))*(@year<=2019)+(@year>2019)*((0.61 - 0.5)*dlog(GM[cservex]{-1}) + 1.42 * dlog(CH[cservex]))/(1-0.5) if GM[cservex] <> 0 
+
+@over  GRGM_CT[cservex] = (dlog(QMexo[cservex]))*(@year<=2019)+(@year>2019)*((((0.61 - 0.5)*dlog(GM[cservex]{-1}) + 1.42 * dlog(CH[cservex]))/(1-0.5)>-1)* _
+                            ((0.61 - 0.5)*dlog(GM[cservex]{-1}) + 1.42 * dlog(CH[cservex]))/(1-0.5) + (((0.61 - 0.5)*dlog(GM[cservex]{-1}) + 1.42 * dlog(CH[cservex]))/(1-0.5)<=-1)*-0.99) if GM[cservex] <> 0
+
+dlog(GM_CT[cservex]) = GRGM_CT[cservex] if GM[cservex] <> 0
+                                                  
+GRGM_LT[cservex] = (dlog(QMexo[cservex]))*(@year<=2019)+(@year>2019)*(dlog(EXP[cservex]) + 0.28*d(GM[cservex]/EXP[cservex])- 0.29*(dlog(PGM[cservex])-dlog(PGD[cservex]))) if GM[cservex] <> 0
+
+dlog(GM_LT[cservex]) = GRGM_LT[cservex]  if GM[cservex] <> 0
+
+@over GRCHM[cservex] =  0.5 * dlog(CHM[cservex]{-1}) + (1-0.5) * dlog(CHM_CT[cservex]) - 0.12*(log(CHM[cservex]{-1}) - log(CHM_LT[cservex]{-1}))  if CHM[cservex] <> 0  
+   
+ @over GM_des[cservex] = GM[cservex]{-1}*((1 + (QMexo[cservex]>0)*(d(QMexo[cservex])/QMexo[cservex]{-1})))*(@year<=2019) _
+                        + ((GM[cservex]{-1}*(1+GRGM[cservex])>0)*(GM[cservex]{-1}*(1+GRGM[cservex]))+(GM[cservex]{-1}*(1+GRGM[cservex])<=0)*0.00001)*(@year>2019) if GM[cservex] <> 0
+
+ @over GD_des[cservex]  = ((EXPGexo[cservex]-GM[cservex] > 0) * (EXPGexo[cservex] - GM[cservex]) + (EXPGexo[cservex] - GM[cservex] =< 0) * (0.00001))*(@year<=2019) _
+                    + ((EXPG[cservex] - GM_des[cservex]>0)*(EXPG[cservex] - GM_des[cservex])+(EXPG[cservex] - GM_des[cservex]<=0)*0.00001)*(@year>2019) if GD_des[cservex] <> 0
+                    
+ G_des[cservex] = GD_des[cservex] + GM_des[cservex]  
+ 
+ @over GM_n[cservex]  = GM[cservex]{-1}*((1 + (QMexo[cservex]>0)*(d(QMexo[cservex])/QMexo[cservex]{-1})))*(@year<=2019) _
+                        + ((G_n[cservex] - GM_des[cservex]>0) * ((GM_des[cservex]/G_des[cservex]) * G_n[cservex])  + _
+                         (G_n[cservex] - GM_des[cservex]<=0) *(G_n[cservex] - 0.00001  ))*(@year>2019) if GM[cservex] <> 0 
+ 
+  @over GD_n[cservex] = ((EXPGexo[cservex]-GM[cservex] > 0) * (EXPGexo[cservex] - GM[cservex]) + (EXPGexo[cservex] - GM[cservex] =< 0) * (0.00001))*(@year<=2019) _
+                        + (G_n[cservex] - GM_n[cservex])*(@year>2019) if GD[cservex] <> 0 
+
+  @over GD[cservex] = GD_n[cservex]  
+  
+  @over GM[cservex] = GM_n[cservex]  
+  
+  #énergies
 #Il n y a pas d importations de consommations publiques énergétiques
 
-
 #investissement
+	#gel#dai #bug en 2023 baseline
+ #gel@over IAM[cdai,sne] = IAM[cdai,sne]{-1}*((1 + (QMexo[cdai]>0)*(d(QMexo[cdai])/QMexo[cdai]{-1})))*(@year<=2019) + ((IAM[cdai,sne]{-1}*(1+GRIAM[cdai,sne])>0)*(IAM[cdai,sne]{-1}*(1+GRIAM[cdai,sne]))+(IAM[cdai,sne]{-1}*(1+GRIAM[cdai,sne])<=0)*0.00001)*(@year>2019) if IAM[cdai,sne] <> 0
+
+ #gel@over IAD[cdai,sne]  = (IA_n[cdai,sne] - IAM[cdai,sne]>0)*(IA_n[cdai,sne] - IAM[cdai,sne])+(IA_n[cdai,sne] - IAM[cdai,sne]<=0)*0.00001 if IAD[cdai, sne] <> 0
+
+#error cette spécification ne garantit pas que IA= IAM + IAD
+
+ #gelGRIAM[cdai,sne] =	(0)*(@year<=2019)+(@year>2019)*(1.55*dlog(IA_n[cdai,sne]) - 0.41*(log(IAM[cdai,sne]{-1}) - log(IA_n[cdai,sne]{-1}) + 0.48*(log(PIAM[cdai]{-1})-log(PIAD[cdai]{-1})))) if IAM[cdai,sne] <> 0
+
+GRIAM_CT[cdai,sne] = (dlog(QMexo[cdai]))*(@year<=2019)+(@year>2019)*((0.06 - 0.5)*dlog(IAM[cdai,sne]{-1}) + 1.42 * dlog(IA[cdai,sne]))/(1-0.5) if IAM[cdai,sne] <> 0 
+
+@over GRIAM_CT[cdai,sne] = (dlog(QMexo[cdai]))*(@year<=2019)+(@year>2019)*((((0.06 - 0.5)*dlog(IAM[cdai,sne]{-1}) + 1.42 * dlog(IA[cdai,sne]))/(1-0.5)>-1)* _
+                            ((0.06 - 0.5)*dlog(IAM[cdai,sne]{-1}) + 1.42 * dlog(IA[cdai,sne]))/(1-0.5) + (((0.06 - 0.5)*dlog(IAM[cdai,sne]{-1}) + 1.42 * dlog(IA[cdai,sne]))/(1-0.5)<=-1)*0.99)   if IAM[cdai,sne] <> 0
+
+dlog(IAM_CT[cdai,sne]) = GRIAM_CT[cdai,sne] if IAM[cdai,sne] <> 0
+                                                  
+GRIAM_LT[cdai,sne] = (dlog(QMexo[cdai]))*(@year<=2019)+(@year>2019)*(dlog(IA[cdai,sne]) + 0.88*d(IAM[cdai,sne]/IA[cdai,sne])- 0.44*(dlog(PIAM[cdai])-dlog(PIAD[cdai]))) if IAM[cdai,sne] <> 0
+
+dlog(IAM_LT[cdai,sne]) = GRIAM_LT[cdai,sne]  if IAM[cdai,sne] <> 0
+
+@over GRIAM[cdai,sne] =  0.5 * dlog(IAM[cdai,sne]{-1}) + (1-0.5) * dlog(IAM_CT[cdai,sne]) - 0.11*(log(IAM[cdai,sne]{-1}) - log(IAM_LT[cdai,sne]{-1}))  if IAM[cdai,sne] <> 0  
+
+ 
+ 
+IAM_d[cdai,sne]  = (IAM[cdai,sne]{-1}*(1 + (QMexo[cdai]>0)*(d(QMexo[cdai])/QMexo[cdai]{-1})))*(@year<=2019) _
+                        + (IAM[cdai,sne]{-1}*(1+GRIAM[cdai,sne]))*(@year>2019) if IAM_d[cdai,sne] <> 0
+ 
+ IAD_d[cdai,sne] = (IA_n[cdai,sne]-IAM_d[cdai,sne]>0) *(IA_n[cdai,sne]-IAM_d[cdai,sne]) + _
+                         (IA_n[cdai,sne]-IAM_d[cdai,sne]<=0) *( 0.00001 ) if IAD_d[cdai,sne] <> 0 
+ 
+ IA_d[cdai,sne] = IAD_d[cdai, sne] + IAM_d[cdai, sne] if IAD_d[cdai,sne] <> 0 
+ 
+ @over IAM_n[cdai,sne]  = (IAM[cdai,sne]{-1}*(1 + (QMexo[cdai]>0)*(d(QMexo[cdai])/QMexo[cdai]{-1})))*(@year<=2019) _
+                        + ((IA_n[cdai,sne] - IAM_d[cdai,sne]>0) * ((IAM_d[cdai,sne]/IA_d[cdai,sne]) * IA_n[cdai,sne])  + _
+                         (IA_n[cdai,sne] - IAM_d[cdai,sne]<=0) *(IA_n[cdai,sne] - 0.00001  ))*(@year>2019) if IAM[cdai,sne] <> 0 
+ 
+  @over IAD_n[cdai,sne] = IA_n[cdai,sne] - IAM_n[cdai,sne] if IAD[cdai,sne] <> 0 
+
+  @over IAD[cdai,sne] = IAD_n[cdai,sne]  
+  
+  @over IAM[cdai,sne] = IAM_n[cdai,sne]  
+ 
+	#gel#services
+
+
+  #gelGRIAM_19[sne] =	((QMexo_19>0)*(d(QMexo_19)/QMexo_19{-1}))*(@year<=2019)+(@year>2019)*(0.25*dlog(IAM_19[sne]{-1}) + 1.18*dlog(IA_n_19[sne]) - 0.34*d(log(PIAM_19{-1})-log(PIAD_19{-1})) _
+                    #gel- 0.49*d(log(IAM_19[sne]{-1}) - log(IA_n_19[sne]{-1}) + 0.69*(log(PIAM_19{-1})-log(PIAD_19{-1})))) if IAM_19[sne] <> 0
+ 
+ GRIAM_CT[19,sne] = (dlog(QMexo_19))*(@year<=2019)+(@year>2019)*((((0.61 - 0.5)*dlog(IAM[19,sne]{-1}) + 1.42 * dlog(IA[19,sne]))/(1-0.5)>-1) * _
+                     ((0.61 - 0.5)*dlog(IAM[19,sne]{-1}) + 1.42 * dlog(IA[19,sne]))/(1-0.5) + (((0.61 - 0.5)*dlog(IAM[19,sne]{-1}) + 1.42 * dlog(IA[19,sne]))/(1-0.5)<=-1)*-0.99) if IAM[19,sne] <> 0 
+
+dlog(IAM_CT[19,sne]) = GRIAM_CT[19,sne] if IAM[19,sne] <> 0
+                                                  
+GRIAM_LT[19,sne] = (dlog(QMexo_19))*(@year<=2019)+(@year>2019)*(dlog(IA[19,sne]) + 0.28*d(IAM[19,sne]/IA[19,sne])- 0.29*(dlog(PIAM_19)-dlog(PIAD_19))) if IAM[19,sne] <> 0
+
+dlog(IAM_LT[19,sne]) = GRIAM_LT[19,sne]  if IAM[19,sne] <> 0
+
+@over GRIAM[19,sne] =  0.5 * dlog(IAM[19,sne]{-1}) + (1-0.5) * dlog(IAM_CT[19,sne]) - 0.12*(log(IAM[19,sne]{-1}) - log(IAM_LT[19,sne]{-1}))  if IAM[19,sne] <> 0  
+
+IAM_d_19[sne]  = (IAM_19[sne]{-1}*(1 + (QMexo_19>0)*(d(QMexo_19)/QMexo_19{-1})))*(@year<=2019) _
+                        + (IAM_19[sne]{-1}*(1+GRIAM_19[sne]))*(@year>2019) if IAM_d_19[sne] <> 0
+ 
+ IAD_d_19[sne] = (IA_n_19[sne]-IAM_d_19[sne]>0) *(IA_n_19[sne]-IAM_d_19[sne]) + _
+                         (IA_n_19[sne]-IAM_d_19[sne]<=0) *( 0.00001 ) if IAD_d_19[sne] <> 0 
+ 
+ IA_d_19[sne] = IAD_d_19[sne] + IAM_d_19[sne]
+ 
+ @over IAM_n_19[sne]  = (IAM_19[sne]{-1}*(1 + (QMexo_19>0)*(d(QMexo_19)/QMexo_19{-1})))*(@year<=2019) _
+                        + ((IA_n_19[sne] - IAM_d_19[sne]>0) * ((IAM_d_19[sne]/IA_d_19[sne]) * IA_n_19[sne])  + _
+                         (IA_n_19[sne] - IAM_d_19[sne]<=0) *(IA_n_19[sne] - 0.00001  ))*(@year>2019) if IAM_19[sne] <> 0 
+ 
+  @over IAD_n_19[sne] = IA_n_19[sne] - IAM_n_19[sne] if IAD_19[sne] <> 0 
+
+  @over IAD_19[sne] = IAD_n_19[sne]   
+  
+  @over IAM_19[sne] = IAM_n_19[sne]  
+  
+    #gelGRIAM[cservex,sne] =	((QMexo_19>0)*(d(QMexo_19)/QMexo_19{-1}))*(@year<=2019)+(@year>2019)*(0.25*dlog(IAM[cservex,sne]{-1}) + 1.18*dlog(IA_n[cservex,sne]) - 0.34*d(log(PIAM_19{-1})-log(PIAD_19{-1})) _
+                    #gel- 0.49*d(log(IAM[cservex,sne]{-1}) - log(IA_n[cservex,sne]{-1}) + 0.69*(log(PIAM_19{-1})-log(PIAD_19{-1})))) if IAM[cservex,sne] <> 0
+ 
+ @over GRIAM_CT[cservex,sne] = (dlog(QMexo_19))*(@year<=2019)+(@year>2019)*((((0.61 - 0.5)*dlog(IAM[cservex,sne]{-1}) + 1.42 * dlog(IA[cservex,sne]))/(1-0.5)>-1) * _
+                     ((0.61 - 0.5)*dlog(IAM[cservex,sne]{-1}) + 1.42 * dlog(IA[cservex,sne]))/(1-0.5) + (((0.61 - 0.5)*dlog(IAM[cservex,sne]{-1}) + 1.42 * dlog(IA[cservex,sne]))/(1-0.5)<=-1)*-0.99) if IAM[cservex,sne] <> 0 
+
+@over dlog(IAM_CT[cservex,sne]) = GRIAM_CT[cservex,sne] if IAM[cservex,sne] <> 0
+                                                  
+@over GRIAM_LT[cservex,sne] = (dlog(QMexo[cservex]))*(@year<=2019)+(@year>2019)*(dlog(IA[cservex,sne]) + 0.28*d(IAM[cservex,sne]/IA[cservex,sne])- 0.29*(dlog(PIAM[cservex])-dlog(PIAD[cservex]))) if IAM[cservex,sne] <> 0
+
+@over dlog(IAM_LT[cservex,sne]) = GRIAM_LT[cservex,sne]  if IAM[cservex,sne] <> 0
+
+@over GRIAM[cservex,sne] =  0.5 * dlog(IAM[cservex,sne]{-1}) + (1-0.5) * dlog(IAM_CT[cservex,sne]) - 0.12*(log(IAM[cservex,sne]{-1}) - log(IAM_LT[cservex,sne]{-1}))  if IAM[cservex,sne] <> 0  
+
+@over IAM_d[cservex,sne]  = (IAM[cservex,sne]{-1}*(1 + (QMexo[cservex]>0)*(d(QMexo[cservex])/QMexo[cservex]{-1})))*(@year<=2019) _
+                        + (IAM[cservex,sne]{-1}*(1+GRIAM[cservex,sne]))*(@year>2019) if IAM_d[cservex,sne] <> 0
+ 
+ @over IAD_d[cservex,sne] = (IA_n[cservex,sne]-IAM_d[cservex,sne]>0) *(IA_n[cservex,sne]-IAM_d[cservex,sne]) + _
+                         (IA_n[cservex,sne]-IAM_d[cservex,sne]<=0) *( 0.00001 ) if IAD_d[cservex,sne] <> 0 
+ 
+ @over IA_d[cservex,sne] = IAD_d[cservex,sne] + IAM_d[cservex,sne]
+ 
+ @over IAM_n[cservex,sne]  = (IAM[cservex,sne]{-1}*(1 + (QMexo[cservex]>0)*(d(QMexo[cservex])/QMexo[cservex]{-1})))*(@year<=2019) _
+                        + ((IA_n[cservex,sne] - IAM_d[cservex,sne]>0) * ((IAM_d[cservex,sne]/IA_d[cservex,sne]) * IA_n[cservex,sne])  + _
+                         (IA_n[cservex,sne] - IAM_d[cservex,sne]<=0) *(IA_n[cservex,sne] - 0.00001  ))*(@year>2019) if IAM[cservex,sne] <> 0 
+ 
+  @over IAD_n[cservex,sne] = IA_n[cservex,sne] - IAM_n[cservex,sne] if IAD[cservex,sne] <> 0 
+
+  @over IAD[cservex,sne] = IAD_n[cservex,sne]   
+  
+  @over IAM[cservex,sne] = IAM_n[cservex,sne]  
+  
+	#gel#énergies
+#gel#Il n y a pas d importations d investissements énergétiques
+#gel
+#gel
+#exportations
 	#dai
- @over IAM[cdai,sne] = IAM[cdai,sne]{-1}*((1 + (QMexo[cdai]>0)*(d(QMexo[cdai])/QMexo[cdai]{-1})))*(@year<=2019) + ((IAM[cdai,sne]{-1}*(1+GRIAM[cdai,sne])>0)*(IAM[cdai,sne]{-1}*(1+GRIAM[cdai,sne]))+(IAM[cdai,sne]{-1}*(1+GRIAM[cdai,sne])<=0)*0.00001)*(@year>2019) if IAM[cdai,sne] <> 0
- GRIAM[cdai,sne] =	(0)*(@year<=2019)+(@year>2019)*(1.55*dlog(IA_n[cdai,sne]) - 0.41*(log(IAM[cdai,sne]{-1}) - log(IA_n[cdai,sne]{-1}) + 0.48*(log(PIAM[cdai]{-1})-log(PIAD[cdai]{-1})))) if IAM[cdai,sne] <> 0
- @over IAD[cdai,sne]  = (IA_n[cdai,sne] - IAM[cdai,sne]>0)*(IA_n[cdai,sne] - IAM[cdai,sne])+(IA_n[cdai,sne] - IAM[cdai,sne]<=0)*0.00001 if IAD[cdai, sne] <> 0
+## @over d(log(XM[cdai])) = (1.42*dlog(X[cdai]) _
+#					- 0.11*(log(XM[cdai]{-1}) - log(X[cdai]{-1}) + 0.44*(log(PXM[cdai]{-1})-log(PXD[cdai]{-1}))-log(@elem(XM[cdai],%baseyear)/(@elem(X[cdai],%baseyear))))) if XM[cdai] <> 0
+## @over XD[cdai] = (X[cdai] - XM[cdai] > 0) * (X[cdai] - XM[cdai]) + (X[cdai] - XM[cdai] <= 0) * (0.00001) if XD[cdai] <> 0
 
 	#services
- @over IAM[cservex,sne] = IAM[cservex,sne]{-1}*((1 + (QMexo[cservex]>0)*(d(QMexo[cservex])/QMexo[cservex]{-1})))*(@year<=2019) _
-                        + ((IAM[cservex,sne]{-1}*(1+GRIAM[cservex,sne])>0)*(IAM[cservex,sne]{-1}*(1+GRIAM[cservex,sne]))+(IAM[cservex,sne]{-1}*(1+GRIAM[cservex,sne])<=0)*0.00001)*(@year>2019) if IAM[cservex,sne] <> 0
- GRIAM[cservex,sne] =	(0)*(@year<=2019)+(@year>2019)*(0.25*dlog(IAM[cservex,sne]{-1}) + 1.18*dlog(IA_n[cservex,sne]) - 0.34*d(log(PIAM[cservex]{-1})-log(PIAD[cservex]{-1})) - 0.49*(log(IAM[cservex,sne]{-1}) - log(IA_n[cservex,sne]{-1}) + 0.69*(log(PIAM[cservex]{-1})-log(PIAD[cservex]{-1})))) if IAM[cservex,sne] <> 0
- @over IAD[cservex,sne]  = (IA_n[cservex,sne] - IAM[cservex,sne]>0)*(IA_n[cservex,sne] - IAM[cservex,sne])+(IA_n[cservex,sne] - IAM[cservex,sne]<=0)*0.00001 if IAD[cservex, sne] <> 0
+## @over d(log(XM[cservex])) = (0.36*dlog(X[cservex]) _
+#					- 0.12*(log(XM[cservex]{-1}) - log(X[cservex]{-1}) + 0.29*(log(PXM[cservex]{-1})-log(PXD[cservex]{-1}))-log(@elem(XM[cservex],%baseyear)/(@elem(X[cservex],%baseyear))))) if XM[cservex] <> 0
+## @over XD[cservex] = (X[cservex] - XM[cservex] > 0) * (X[cservex] - XM[cservex]) + (X[cservex] - XM[cservex] <= 0) * (0.00001) if XD[cservex] <> 0
 
-	#énergies
-#Il n y a pas d importations d investissements énergétiques
+#### TAUX DE MARGE ####
 
-#gel#exportations
-	#gel#dai
-#gel## @over d(log(XM[cdai])) = (1.42*dlog(X[cdai]) _
-#gel#					- 0.11*(log(XM[cdai]{-1}) - log(X[cdai]{-1}) + 0.44*(log(PXM[cdai]{-1})-log(PXD[cdai]{-1}))-log(@elem(XM[cdai],%baseyear)/(@elem(X[cdai],%baseyear))))) if XM[cdai] <> 0
-#gel## @over XD[cdai] = (X[cdai] - XM[cdai] > 0) * (X[cdai] - XM[cdai]) + (X[cdai] - XM[cdai] <= 0) * (0.00001) if XD[cdai] <> 0
-#gel
-	#gel#services
-#gel## @over d(log(XM[cservex])) = (0.36*dlog(X[cservex]) _
-#gel#					- 0.12*(log(XM[cservex]{-1}) - log(X[cservex]{-1}) + 0.29*(log(PXM[cservex]{-1})-log(PXD[cservex]{-1}))-log(@elem(XM[cservex],%baseyear)/(@elem(X[cservex],%baseyear))))) if XM[cservex] <> 0
-#gel## @over XD[cservex] = (X[cservex] - XM[cservex] > 0) * (X[cservex] - XM[cservex]) + (X[cservex] - XM[cservex] <= 0) * (0.00001) if XD[cservex] <> 0
+# Utilisation de la définition du taux de marge de la V3 pour tous les secteurs non-énergétiques et V2 pour les secteurs énergétiques à cause de problème de valeur négative
 
-#gel#### TAUX DE MARGE ####
-#gel
-#gel# Utilisation de la définition du taux de marge de la V3 pour tous les secteurs non-énergétiques et V2 pour les secteurs énergétiques à cause de problème de valeur négative
-#gel
-#gel#à peut-être enlever
-#gel@over dlog(1+TMD_n[se]) = (0.4 * ( dlog(Y[se]) -dlog(Y_e[se]{-1})))*(@year<=2019) + (@year>2019) * ((TMD_n[se]{-1}>0.01)*(0.9 * ( dlog(Y[se]) -dlog(Y_e[se]{-1})))+(TMD_n[se]{-1}<=0.01)*(0.000001)) if Y[se] > 0 
-#gel
-#gel# TMD de la v3
-#gel@over dlog(1+TMD_n_01) = (0.4 * ( dlog(Y_01) -dlog(Y_e_01{-1})))*(@year<=2019) + ((TMD_n_01{-1}>0.01)*(0.75 * d(log(CUR_test_01))) + (TMD_n_01{-1}<=0.01)*(0.000001)) * (@year > 2019) if Y_01 > 0
-#gel@over dlog(1+TMD_n[sind]) = (0.4 * ( dlog(Y[sind]) -dlog(Y_e[sind]{-1})))*(@year<=2019) + ((TMD_n[sind]{-1}>0.01)*(0.75 * d(log(CUR_test[sind]))) + (TMD_n[sind]{-1}<=0.01)*(0.000001)) * (@year > 2019) if Y[sind] > 0
-#gel@over dlog(1+TMD_n[trsp]) = (0.4 * ( dlog(Y[trsp]) -dlog(Y_e[trsp]{-1})))*(@year<=2019) + ((TMD_n[trsp]{-1}>0.01)*(0.75 * d(log(CUR_test[trsp]))) + (TMD_n[trsp]{-1}<=0.01)*(0.000001)) * (@year > 2019) if Y[trsp] > 0
-#gel@over dlog(1+TMD_n[ster]) = (0.4 * ( dlog(Y[ster]) -dlog(Y_e[ster]{-1})))*(@year<=2019) + ((TMD_n[ster]{-1}>0.01)*(0.75 * d(log(CUR_test[ster]))) + (TMD_n[ster]{-1}<=0.01)*(0.000001)) * (@year > 2019) if Y[ster] > 0
-#gel
-#gelCUR_test[sne] = Y[sne] / YCAP_test[sne] if YCAP_test[sne] > 0
-#gel
-#geld(log(YCAP_test[sne])) = ((CL[sne]{-1} * PROG_L[sne]{-1} * L[sne]{-1})/(CU[sne]{-1} * Y[sne]{-1})) * d(log(L[sne] * PROG_L[sne])) + ((CK[sne]{-1} * K[sne]{-1})/(CU[sne]{-1} * Y[sne]{-1})) * d(log(K[sne] * PROG_K[sne])) + ((PE[sne]{-1} * E[sne]{-1})/(CU[sne]{-1} * Y[sne]{-1})) * d(log(E[sne] * PROG_E[sne])) + ((PMAT[sne]{-1} * MAT[sne]{-1})/(CU[sne]{-1} * Y[sne]{-1})) * d(log(MAT[sne])) if Y[sne] > 0							
-#gel
-#gel#### CONSOMMATION DES MENAGES ####
-#gel
-#gel# coef d'ajustement de exp
-#gel@over log(EXP[co,h]) = log(EXP_n[co,h])*(@year<=2019) + _
-                     #gel(0.8  *  log(EXP_n[co, h]) _
-                     #gel+ (1 - 0.8)*(log(EXP[co, h]{-1}) + dlog(EXP_e[co, h])))*(@year>2019)    if EXP[co, h] <> 0
-#gel
-#gel
-#gel@over EXP_n[co, h] = (@year <= 2019)*((@year <= %baseyear) * (@elem(EXP_n[co, h],%baseyear) * (1 + STEADYSTATE(2, 1))^(@year-%baseyear))+ _
-                      #gel(@year > %baseyear)*(EXP_n[co,h]{-1}*EXPexo[co]/EXPexo[co]{-1})) + _
-                      #gel(@year >  2019) * ((Choc_EXP[co]<=0)*(Choc_EXP[co]>=0)*(( NEXP[co, h] + BetaExp[co, h] * _ 
-                        #gel( ARBINC_VAL[h] / P * (1 - MPS_HH[h]) )) ) + _ 
-                        #gel(Choc_EXP[co]<0)*((1+Choc_EXP[co]) * EXP_n[co, h]{-1}) + _
-                        #gel(Choc_EXP[co]>0)*((1+Choc_EXP[co]) * EXP_n[co, h]{-1}))   if EXP_n[co, h] <> 0            
-#gel
-#gel@over d(log(EXP_e[c, h])) = 0.05 * d(log(EXP_e[c, h]{-1})) + 0.65 * d(log(EXP[c, h]{-1})) + 0.3 * d(log(EXP_n[c, h])) if EXP[c, h] <> 0
-#gel# equation du code hybrid_new appele en second
-#gel@over dlog(EXP_e[co, h]) = (@year <= 2019)*(dlog(EXP_n[co, h])) + _
-                              #gel(@year > 2019)* (0.05 * d(log(EXP_e[co, h]{-1})) + 0.65 * d(log(EXP[co, h]{-1})) +  0.3 * d(log(EXP_n[co, h]))) if EXP[co, h] <> 0
-#gel
-#gel
-#gel
-#gel#### MODIFICATION DES EQUATIONS DE SALAIRES ####
-#gel
-#gel#### AJUSTER LES COEFFICIENTS SI BESOIN, EXOGENEISATION COMPLETE DU CFS DANS LE NOTIONNEL ####
-#gel
-#gel@over d(log(W_S[se]))  = (ADJUST(18 , 1) * d(log(W_S_n[se])) + ( 1 - ADJUST(18 , 1) ) * d(log(W_S[se]{-1})) - ADJUST(18 , 2) * (log(W_S[se]{-1}/W_S_n[se]{-1}))) * (@year <= 2019) + (1 * d(log(P)) + 0.3 * d(log(PROG_L[se])) - 0.5 * d(UnR_TOT) - 0.27 * (log((W_S[se]{-1})/W_S_n[se]{-1})))* (@year > 2019) # calibrage sur l'équation des salaires des travailleurs qualifiés (la valeur des coefficients étant de toute façon proche de celle des travailleurs non-qualifiés)
-#gel
-#gel# salaires notionnels: terme chomage en contemporain
-#gel@over d(log(W_S_n[s])) = 1*d(log(P_e)) + 1*d(log(PROG_L[s])) + 1*d(log(CFS)) - 1.8*d(UnR_TOT)      if W_S_n[s] <> 0
-#gel
-#gel# salaires de CT: VA/L dans eq de CT (plus de réaction des salaires à CT et prix dans choc invt pub) et 0.8*P + 0.2*P_e (pas de baisse du sal réel à CT dans choc effl et inflation à CT dans choc expinvp)
-#gel@over d(log(W_S[sne]))  = (ADJUST(18 , 1) * d(log(W_S_n[sne])) + ( 1 - ADJUST(18 , 1) ) * d(log(W_S[sne]{-1})) - ADJUST(18 , 2) * (log(W_S[sne]{-1}/W_S_n[sne]{-1}))) * (@year <= 2019) + ( 0.7 * d(log(P)) + 0.3 * d(log(P_e)) + 0.42 * d(log(VA[sne]/L[sne])) - 0.7 * d(UnR_TOT) - 0.27 * (log((W_S[sne]{-1})/W_S_n[sne]{-1})))* (@year > 2019) # calibrage sur l'équation des salaires des travailleurs qualifiés (la valeur des coefficients étant de toute façon proche de celle des travailleurs non-qualifiés)
-#gel
+#à peut-être enlever
+@over dlog(1+TMD_n[se]) = (0.4 * ( dlog(Y[se]) -dlog(Y_e[se]{-1})))*(@year<=2019) + (@year>2019) * ((TMD_n[se]{-1}>0.01)*(0.9 * ( dlog(Y[se]) -dlog(Y_e[se]{-1})))+(TMD_n[se]{-1}<=0.01)*(0.000001)) if Y[se] > 0 
+
+# TMD de la v3
+@over dlog(1+TMD_n_01) = (0.4 * ( dlog(Y_01) -dlog(Y_e_01{-1})))*(@year<=2019) + ((TMD_n_01{-1}>0.01)*(0.75 * d(log(CUR_test_01))) + (TMD_n_01{-1}<=0.01)*(0.000001)) * (@year > 2019) if Y_01 > 0
+@over dlog(1+TMD_n[sind]) = (0.4 * ( dlog(Y[sind]) -dlog(Y_e[sind]{-1})))*(@year<=2019) + ((TMD_n[sind]{-1}>0.01)*(0.75 * d(log(CUR_test[sind]))) + (TMD_n[sind]{-1}<=0.01)*(0.000001)) * (@year > 2019) if Y[sind] > 0
+@over dlog(1+TMD_n[trsp]) = (0.4 * ( dlog(Y[trsp]) -dlog(Y_e[trsp]{-1})))*(@year<=2019) + ((TMD_n[trsp]{-1}>0.01)*(0.75 * d(log(CUR_test[trsp]))) + (TMD_n[trsp]{-1}<=0.01)*(0.000001)) * (@year > 2019) if Y[trsp] > 0
+@over dlog(1+TMD_n[ster]) = (0.4 * ( dlog(Y[ster]) -dlog(Y_e[ster]{-1})))*(@year<=2019) + ((TMD_n[ster]{-1}>0.01)*(0.75 * d(log(CUR_test[ster]))) + (TMD_n[ster]{-1}<=0.01)*(0.000001)) * (@year > 2019) if Y[ster] > 0
+
+@over dlog(1+TMD_n[sne]) = (0.4 * ( dlog(Y[sne]) -dlog(Y_e[sne]{-1})))*(@year<=2019) + ((TMD_n[sne]{-1}>0.01)*(0.75 * d(log(CUR_test[sne]))) + (TMD_n[sne]{-1}<=0.01)*(0.000001)) * (@year > 2019) if Y[sne] > 0
+
+
+CUR_test[sne] = Y[sne] / YCAP_test[sne] if YCAP_test[sne] > 0
+
+d(log(YCAP_test[sne])) = ((CL[sne]{-1} * PROG_L[sne]{-1} * L[sne]{-1})/(CU[sne]{-1} * Y[sne]{-1})) * d(log(L[sne] * PROG_L[sne])) + ((CK[sne]{-1} * K[sne]{-1})/(CU[sne]{-1} * Y[sne]{-1})) * d(log(K[sne] * PROG_K[sne])) + ((PE[sne]{-1} * E[sne]{-1})/(CU[sne]{-1} * Y[sne]{-1})) * d(log(E[sne] * PROG_E[sne])) + ((PMAT[sne]{-1} * MAT[sne]{-1})/(CU[sne]{-1} * Y[sne]{-1})) * d(log(MAT[sne])) if Y[sne] > 0							
+
+#### CONSOMMATION DES MENAGES ####
+
+# coef d'ajustement de exp
+@over log(EXP[co,h]) = log(EXP_n[co,h])*(@year<=2019) + _
+                     (0.8  *  log(EXP_n[co, h]) _
+                     + (1 - 0.8)*(log(EXP[co, h]{-1}) + dlog(EXP_e[co, h])))*(@year>2019)    if EXP[co, h] <> 0
+
+
+@over EXP_n[co, h] = (@year <= 2019)*((@year <= %baseyear) * (@elem(EXP_n[co, h],%baseyear) * (1 + STEADYSTATE(2, 1))^(@year-%baseyear))+ _
+                      (@year > %baseyear)*(EXP_n[co,h]{-1}*EXPexo[co]/EXPexo[co]{-1})) + _
+                      (@year >  2019) * ((Choc_EXP[co]<=0)*(Choc_EXP[co]>=0)*(( NEXP[co, h] + BetaExp[co, h] * _ 
+                        ( ARBINC_VAL[h] / P * (1 - MPS_HH[h]) )) ) + _ 
+                        (Choc_EXP[co]<0)*((1+Choc_EXP[co]) * EXP_n[co, h]{-1}) + _
+                        (Choc_EXP[co]>0)*((1+Choc_EXP[co]) * EXP_n[co, h]{-1}))   if EXP_n[co, h] <> 0            
+
+@over d(log(EXP_e[c, h])) = 0.05 * d(log(EXP_e[c, h]{-1})) + 0.65 * d(log(EXP[c, h]{-1})) + 0.3 * d(log(EXP_n[c, h])) if EXP[c, h] <> 0
+# equation du code hybrid_new appele en second
+@over dlog(EXP_e[co, h]) = (@year <= 2019)*(dlog(EXP_n[co, h])) + _
+                              (@year > 2019)* (0.05 * d(log(EXP_e[co, h]{-1})) + 0.65 * d(log(EXP[co, h]{-1})) +  0.3 * d(log(EXP_n[co, h]))) if EXP[co, h] <> 0
+
+
+@over BetaEXP_n[co, h] = (@year <= 2019)*((EXP_n[co, h] - NEXP[co, h]) / EXP_CES_VOL) + _
+                        (@year > 2019)*((choc_EXP[co]>=0)*(choc_EXP[co]<=0)*(BetaEXP[co, h]{-1} * _
+                        (1 + (1 - ES_LES_CES(1, 1)) * dlog(PEXP[co, h] / PEXP_CES[h])+ choc_R_EXP[co])) + _       
+                        (choc_EXP[co] > 0) * (((1+Choc_EXP[co]) * EXP_n[co, h]{-1} - NEXP[co, h]) / ( ARBINC_VAL[h] / P * (1 - MPS_HH[h]) )) + _  
+                        (choc_EXP[co] < 0) * (((1+Choc_EXP[co]) * EXP_n[co, h]{-1} - NEXP[co, h]) / ( ARBINC_VAL[h] / P * (1 - MPS_HH[h]) )))  if BetaEXP_n[co, h] <> 0
+                        
+#@over BetaEXP[co, h] = (@year <= 2019)*(BetaEXP_n[co, h]) + _
+#                         (@year > 2019)*((choc_EXP[co]>=0)*(choc_EXP[co]<=0)*(BetaEXP_n[co, h]) + _  
+#                        (choc_EXP[co] > 0) * (BetaEXP_n[co, h]) + (choc_EXP[co] < 0) * (BetaEXP_n[co, h]))  if BetaEXP[co, h] <> 0
+
+EXP_CES_VOL = sum((EXP_n[co, h] - NEXP[co, h] ) on co)
+
+
+
+#### MODIFICATION DES EQUATIONS DE SALAIRES ####
+
+#### AJUSTER LES COEFFICIENTS SI BESOIN, EXOGENEISATION COMPLETE DU CFS DANS LE NOTIONNEL ####
+#bug en AME 2028 W_S_06 car VA_06<0
+@over d(log(W_S[se]))  = (ADJUST(18 , 1) * d(log(W_S_n[se])) + ( 1 - ADJUST(18 , 1) ) * d(log(W_S[se]{-1})) - ADJUST(18 , 2) * (log(W_S[se]{-1}/W_S_n[se]{-1}))) * (@year <= 2019) + (1 * d(log(P)) + 0.3 * d(log(PROG_L[se])) - 0.5 * d(UnR_TOT) - 0.27 * (log((W_S[se]{-1})/W_S_n[se]{-1})))* (@year > 2019) # calibrage sur l'équation des salaires des travailleurs qualifiés (la valeur des coefficients étant de toute façon proche de celle des travailleurs non-qualifiés)
+
+# salaires notionnels: terme chomage en contemporain
+@over d(log(W_S_n[s])) = 1*d(log(P_e)) + 1*d(log(PROG_L[s])) + 1*d(log(CFS)) - 1.8*d(UnR_TOT)      if W_S_n[s] <> 0
+
+# salaires de CT: VA/L dans eq de CT (plus de réaction des salaires à CT et prix dans choc invt pub) et 0.8*P + 0.2*P_e (pas de baisse du sal réel à CT dans choc effl et inflation à CT dans choc expinvp)
+@over d(log(W_S[sne]))  = (ADJUST(18 , 1) * d(log(W_S_n[sne])) + ( 1 - ADJUST(18 , 1) ) * d(log(W_S[sne]{-1})) - ADJUST(18 , 2) * (log(W_S[sne]{-1}/W_S_n[sne]{-1}))) * (@year <= 2019) + ( 0.7 * d(log(P)) + 0.3 * d(log(P_e)) + 0.42 * d(log(VA[sne]/L[sne])) - 0.7 * d(UnR_TOT) - 0.27 * (log((W_S[sne]{-1})/W_S_n[sne]{-1})))* (@year > 2019) # calibrage sur l'équation des salaires des travailleurs qualifiés (la valeur des coefficients étant de toute façon proche de celle des travailleurs non-qualifiés)
+#on remplace log(VA[sne]/L[sne] par log(PROG_L[sne] pour éviter pic d'inflation.
+@over d(log(W_S[sne]))  = (ADJUST(18 , 1) * d(log(W_S_n[sne])) + ( 1 - ADJUST(18 , 1) ) * d(log(W_S[sne]{-1})) - ADJUST(18 , 2) * (log(W_S[sne]{-1}/W_S_n[sne]{-1}))) * (@year <= 2019) + ( 0.7 * d(log(P)) + 0.3 * d(log(P_e)) + 0.42 * d(log(PROG_L[sne])) - 0.7 * d(UnR_TOT) - 0.27 * (log((W_S[sne]{-1})/W_S_n[sne]{-1})))* (@year > 2019) 
+# je remarque que le taux de chômage en niveau s'élève à 17% en 2030... 
+
 #gel#### MODIFICATION DES FACTEURS D AJUSTEMENT #####
-#gel 
-#gel@over d(log(Y_e[s])) = 0.3 * d(log(Y_e[s]{-1})) + (1 - 0.3) * d(log(Y[s])) + 0.3 * (log(Y[s]{-1}) - log(Y_e[s]{-1}))
-#gel
-#gel@over log(PY[s]) = 0.8 * log(PY_n[s]) + (1 - 0.8) * (log(PY[s]{-1}) + d(log(PY_e[s])))
-#gel
-#gel@over d(log(PY_e[s]))  = 0.05  * d(log(PY_e[s]{-1}))  + 0.65  * d(log(PY[s]{-1}))  + 0.3  * d(log(PY_n[s]))
-#gel
-#gel# PY_n en ligne avec la v3
-#gel@over PY_n[sne] = NCU_n[sne] * (1 + TMD_n[sne]) if Y[sne] > 0
-#gel#baisse un peu inflation
-#gel
-#gel#P_e en ligne avec la v3
-#gel@over d(log(P_e))  = 0.3  * d(log(P_e(-1)))  + ( 1  - 0.3 ) * d(log(P(-1)))  
-#gel
-#gel#@over log(PARTR[sex, age]) = (@year<=2019) *( ADJUST(19, 1) * log(PARTR_n[sex, age]) + (1 - ADJUST(19, 1)) * (log(PARTR[sex, age]{-1}) + d(log(PARTR_e[sex, age])))) + (@year > 2019) * (0.5 * log(PARTR_n[sex, age]) + (1 - 0.5) * (log(PARTR[sex, age]{-1}) + d(log(PARTR_e[sex, age])))) if PARTR[sex, age] <> 0
-#gel@over d(log(PARTR_e[sex, age])) = 0.05 * d(log(PARTR_e[sex, age]{-1})) + 0.65 * d(log(PARTR[sex, age]{-1})) + 0.3 * d(log(PARTR_n[sex, age])) if PARTR[sex, age] <> 0
-#gel
-#gel
-#gel@over log(|V|[s]) = 0.5 * log(|V|_n[s]) + (1 - 0.5) * (log(|V|[s]{-1}) + d(log(|V|_e[s]))) if |V|[s] <> 0 where V in L
-#gel@over log(|V|[s]) = (@year <= 2019) * (ADJUST(1 + $V, 1) * log(|V|_n[s]) + (1 - ADJUST(1 + $V, 1)) * (log(|V|[s]{-1}) + d(log(|V|_e[s])))) + (@year > 2019) * ( 0.5 * log(|V|_n[s]) + (1 - 0.5) * (log(|V|[s]{-1}) + d(log(|V|_e[s])))) if |V|[s] <> 0 where V in E MAT
-#gel@over log(|V|[se]) = 0.5 * log(|V|_n[se]) + (1 - 0.5) * (log(|V|[se]{-1}) + d(log(|V|_e[se]))) if |V|[se] <> 0 where V in E MAT
-#gel@over log(|V|[se]) = 0.5 * log(|V|_n[se]) + (1 - 0.5) * (log(|V|[se]{-1}) + d(log(|V|_e[se]))) if |V|[se] <> 0 where V in E_oth E_indus
-#gel
-#gel@over d(log(|V|_e[s])) = 0.05 * d(log(|V|_e[s]{-1})) + 0.65 * d(log(|V|[s]{-1})) + 0.3 * d(log(|V|_n[s])) if |V|[s] <> 0 where V in L E MAT
-#gel@over d(log(|V|_e[s])) = 0.05 * d(log(|V|_e[s]{-1})) + 0.65 * d(log(|V|[s]{-1})) + 0.3 * d(log(|V|_n[s])) if |V|[s] <> 0 where V in E_oth E_indus
-#gel 
-#gel@over log(|V|[c]) = (@year <= 2019) * ( ADJUST(14 + $V, 1) * log(|V|_n[c]) + (1 - ADJUST(14 + $V, 1)) * (log(|V|[c]{-1}) + d(log(|V|_e[c])))) + (@year > 2019) * (0.5 * log(|V|_n[c]) + (1 - 0.5) * (log(|V|[c]{-1}) + d(log(|V|_e[c])))) if |V|[c] <> 0 where V in SD SM
-#gel@over d(log(|V|_e[c])) = 0.05 * d(log(|V|_e[c]{-1})) + 0.65 *d(log(|V|[c]{-1})) + 0.3 * d(log(|V|_n[c])) if |V|[c] <> 0 where V in SD SM
-#gel 
-#gel# coefficients d'ajustements: 0.8 partout
-#gel@over SUBST_K_NE[s]  = 0.8  * SUBST_K_NE_n[s]  + ( 1  - 0.8 )  * SUBST_K_NE[s]{-1}
-#gel@over SUBST_K_E[s]  = 0.8  * SUBST_K_E_n[s]  + ( 1  - 0.8 )  * SUBST_K_E[s]{-1}
-#gel@over SUBST_|V|[s] = 0.8 * SUBST_|V|_n[s] + (1 - 0.8) * SUBST_|V|[s]{-1} if |V|[s] <> 0 where V in K L E MAT
-#gel
-#gel@over SUBST_CHD[c]  = 0.8 * SUBST_CHD_n[c]  + ( 1  - 0.8 )  * (SUBST_CHD[c]{-1}) if CHD[c] <> 0
-#gel@over SUBST_CHM[c] = 0.8 * SUBST_CHM_n[c]  + ( 1  - 0.8)  * (SUBST_CHM[c]{-1}) if CHM[c] <> 0
-#gel@over SUBST_GD[c]  = 0.8  * SUBST_GD_n[c]  + ( 1  - 0.8 )  * (SUBST_GD[c]{-1}) if GD[c] <> 0 
-#gel@over SUBST_GM[c]  = 0.8  * SUBST_GM_n[c]  + ( 1  - 0.8 )  * (SUBST_GM[c]{-1}) if GM[c] <> 0
-#gel@over SUBST_X[c] = 0.8 * SUBST_X_n[c] + (1- 0.8) * (SUBST_X[c]{-1}) if X[c] <> 0
-#gel@over SUBST_XD[c] = 0.8  * SUBST_XD_n[c] + (1- 0.8 ) * (SUBST_XD[c]{-1}) if XD[c] <> 0
-#gel@over SUBST_XM[c] = 0.8 * SUBST_GM_n[c] + (1- 0.8 ) * (SUBST_XM[c]{-1}) if XM[c] <> 0
-#gel
-#gel# retrait anticipation dividendes et alignement sur autres coef d'ajustement
-#gel@over DIV_HH_VAL  = 0.8  * DIV_HH_VAL_n  + ( 1  - 0.8 )  *  DIV_HH_VAL(-1)  + 0* d(DIV_HH_VAL_e) 
-#gel@over DIV_GOV_VAL  = 0.8 * DIV_GOV_VAL_n  + ( 1  - 0.8 )  *  DIV_GOV_VAL(-1)  + 0*d(DIV_GOV_VAL_e) 
-#gel# ne change rien
-#gel@over d(log(DIV_|V|_VAL_e)) = 0.05 * d(log(DIV_|V|_VAL_e{-1})) + 0.65 * d(log(DIV_|V|_VAL{-1})) + 0.3 * d(log(DIV_|V|_VAL_n)) where V in HH GOV
-#gel
-#gel# effet compétitivité prix des exportations en ligne avec Mésange (vs ES_ext_choc = 0.4 avant)
-#gel# ES_ext_choc  = 0.4 mais attention aussi dans subst IAM_n MATD_n GD_n CHD_n dans AMS_AME (mais n'est plus appelé)
-#gel@over d(SUBST_X_n[c]) = (@year<=2022)*(-ES_X($c, 1) * d(log(PX[c]) - log(TC*PWD[c]))) _ 
-                        #gel+(@year>2022)*(-ES_X($c, 1)* d(log(PX[c]) - log(TC*PWD[c]))) if X[c] <> 0  #  where c in 05 06 12 13
-#gel
-#gel### distinction prix courants vs prix constants de prix des énergies fossiles ####
-#gel# deflateur au lieu de 2% par an (proxy utilisé par l'ademe pour eviter un plantage)
-#gel@over PWD[ce2] = PWD_constant[ce2]*PGDP
-#gel
-#gel
-#gel
-#gel
-#gel
+ 
+@over d(log(Y_e[s])) = 0.3 * d(log(Y_e[s]{-1})) + (1 - 0.3) * d(log(Y[s])) + 0.3 * (log(Y[s]{-1}) - log(Y_e[s]{-1}))
+
+@over log(PY[s]) = 0.8 * log(PY_n[s]) + (1 - 0.8) * (log(PY[s]{-1}) + d(log(PY_e[s])))
+
+@over d(log(PY_e[s]))  = 0.05  * d(log(PY_e[s]{-1}))  + 0.65  * d(log(PY[s]{-1}))  + 0.3  * d(log(PY_n[s]))
+
+# PY_n en ligne avec la v3
+@over PY_n[sne] = NCU_n[sne] * (1 + TMD_n[sne]) if Y[sne] > 0
+#baisse un peu inflation
+
+#P_e en ligne avec la v3
+@over d(log(P_e))  = 0.3  * d(log(P_e(-1)))  + ( 1  - 0.3 ) * d(log(P(-1)))  
+
+@over log(PARTR[sex, age]) = (@year<=2019) *( ADJUST(19, 1) * log(PARTR_n[sex, age]) + (1 - ADJUST(19, 1)) * (log(PARTR[sex, age]{-1}) + d(log(PARTR_e[sex, age])))) + (@year > 2019) * (0.5 * log(PARTR_n[sex, age]) + (1 - 0.5) * (log(PARTR[sex, age]{-1}) + d(log(PARTR_e[sex, age])))) if PARTR[sex, age] <> 0
+@over d(log(PARTR_e[sex, age])) = 0.05 * d(log(PARTR_e[sex, age]{-1})) + 0.65 * d(log(PARTR[sex, age]{-1})) + 0.3 * d(log(PARTR_n[sex, age])) if PARTR[sex, age] <> 0
+
+
+@over log(|V|[s]) = 0.5 * log(|V|_n[s]) + (1 - 0.5) * (log(|V|[s]{-1}) + d(log(|V|_e[s]))) if |V|[s] <> 0 where V in L
+# erreur sur équation de E E=E_indus+E_OTH
+#@over log(|V|[s]) = (@year <= 2019) * (ADJUST(1 + $V, 1) * log(|V|_n[s]) + (1 - ADJUST(1 + $V, 1)) * (log(|V|[s]{-1}) + d(log(|V|_e[s])))) + (@year > 2019) * ( 0.5 * log(|V|_n[s]) + (1 - 0.5) * (log(|V|[s]{-1}) + d(log(|V|_e[s])))) if |V|[s] <> 0 where V in E MAT
+@over log(|V|[se]) = 0.5 * log(|V|_n[se]) + (1 - 0.5) * (log(|V|[se]{-1}) + d(log(|V|_e[se]))) if |V|[se] <> 0 where V in E MAT
+@over log(|V|[se]) = 0.5 * log(|V|_n[se]) + (1 - 0.5) * (log(|V|[se]{-1}) + d(log(|V|_e[se]))) if |V|[se] <> 0 where V in E_oth E_indus
+
+@over d(log(|V|_e[s])) = 0.05 * d(log(|V|_e[s]{-1})) + 0.65 * d(log(|V|[s]{-1})) + 0.3 * d(log(|V|_n[s])) if |V|[s] <> 0 where V in L E MAT
+@over d(log(|V|_e[s])) = 0.05 * d(log(|V|_e[s]{-1})) + 0.65 * d(log(|V|[s]{-1})) + 0.3 * d(log(|V|_n[s])) if |V|[s] <> 0 where V in E_oth E_indus
+ 
+@over log(|V|[c]) = (@year <= 2019) * ( ADJUST(14 + $V, 1) * log(|V|_n[c]) + (1 - ADJUST(14 + $V, 1)) * (log(|V|[c]{-1}) + d(log(|V|_e[c])))) + (@year > 2019) * (0.5 * log(|V|_n[c]) + (1 - 0.5) * (log(|V|[c]{-1}) + d(log(|V|_e[c])))) if |V|[c] <> 0 where V in SD SM
+@over d(log(|V|_e[c])) = 0.05 * d(log(|V|_e[c]{-1})) + 0.65 *d(log(|V|[c]{-1})) + 0.3 * d(log(|V|_n[c])) if |V|[c] <> 0 where V in SD SM
+ 
+# coefficients d'ajustements: 0.8 partout
+@over SUBST_K_NE[s]  = 0.8  * SUBST_K_NE_n[s]  + ( 1  - 0.8 )  * SUBST_K_NE[s]{-1}
+@over SUBST_K_E[s]  = 0.8  * SUBST_K_E_n[s]  + ( 1  - 0.8 )  * SUBST_K_E[s]{-1}
+@over SUBST_|V|[s] = 0.8 * SUBST_|V|_n[s] + (1 - 0.8) * SUBST_|V|[s]{-1} if |V|[s] <> 0 where V in K L E MAT
+
+@over SUBST_CHD[c]  = 0.8 * SUBST_CHD_n[c]  + ( 1  - 0.8 )  * (SUBST_CHD[c]{-1}) if CHD[c] <> 0
+@over SUBST_CHM[c] = 0.8 * SUBST_CHM_n[c]  + ( 1  - 0.8)  * (SUBST_CHM[c]{-1}) if CHM[c] <> 0
+@over SUBST_GD[c]  = 0.8  * SUBST_GD_n[c]  + ( 1  - 0.8 )  * (SUBST_GD[c]{-1}) if GD[c] <> 0 
+@over SUBST_GM[c]  = 0.8  * SUBST_GM_n[c]  + ( 1  - 0.8 )  * (SUBST_GM[c]{-1}) if GM[c] <> 0
+@over SUBST_X[c] = 0.8 * SUBST_X_n[c] + (1- 0.8) * (SUBST_X[c]{-1}) if X[c] <> 0
+@over SUBST_XD[c] = 0.8  * SUBST_XD_n[c] + (1- 0.8 ) * (SUBST_XD[c]{-1}) if XD[c] <> 0
+@over SUBST_XM[c] = 0.8 * SUBST_GM_n[c] + (1- 0.8 ) * (SUBST_XM[c]{-1}) if XM[c] <> 0
+
+# retrait anticipation dividendes et alignement sur autres coef d'ajustement #bug en 2023 missing value
+@over DIV_HH_VAL  = 0.8  * DIV_HH_VAL_n  + ( 1  - 0.8 )  *  DIV_HH_VAL(-1)  + 0* d(DIV_HH_VAL_e) 
+@over DIV_GOV_VAL  = 0.8 * DIV_GOV_VAL_n  + ( 1  - 0.8 )  *  DIV_GOV_VAL(-1)  + 0*d(DIV_GOV_VAL_e) 
+# ne change rien
+@over d(log(DIV_|V|_VAL_e)) = 0.05 * d(log(DIV_|V|_VAL_e{-1})) + 0.65 * d(log(DIV_|V|_VAL{-1})) + 0.3 * d(log(DIV_|V|_VAL_n)) where V in HH GOV
+
+# effet compétitivité prix des exportations en ligne avec Mésange (vs ES_ext_choc = 0.4 avant)
+ ES_ext_choc  = 0.4 mais attention aussi dans subst IAM_n MATD_n GD_n CHD_n dans AMS_AME (mais n'est plus appelé)
+@over d(SUBST_X_n[c]) = (@year<=2022)*(-ES_X($c, 1) * d(log(PX[c]) - log(TC*PWD[c]))) _ 
+                        +(@year>2022)*(-ES_X($c, 1)* d(log(PX[c]) - log(TC*PWD[c]))) if X[c] <> 0  #  where c in 05 06 12 13
+
+### distinction prix courants vs prix constants de prix des énergies fossiles #### #bug en 2023
+# deflateur au lieu de 2% par an (proxy utilisé par l'ademe pour eviter un plantage
+@over PWD[ce2] = PWD_constant[ce2]*PGDP + choc_fossile[ce2]
+# change pas mal les resultats dans choc d'investissement
+
+
+#gel#modif 16/04/2024
+# TMD condition -1
+# PROG_L dans W_S
+@over dlog(1+TMD_n[se]) = (0.4 * ( dlog(Y[se]) -dlog(Y_e[se]{-1})))*(@year<=2019) + (@year>2019) * ((TMD_n[se]{-1}>-1)*(0.9 * ( dlog(Y[se]) -dlog(Y_e[se]{-1})))+(TMD_n[se]{-1}<=-1)*(0.000001)) if Y[se] > 0 
+@over dlog(1+TMD_n[sne]) = (0.4 * ( dlog(Y[sne]) -dlog(Y_e[sne]{-1})))*(@year<=2019) + ((TMD_n[sne]{-1}>-1)*(0.75 * d(log(CUR_test[sne]))) + (TMD_n[sne]{-1}<=-1)*(0.000001)) * (@year > 2019) if Y[sne] > 0
+
+
+#### CORRECTION FORMULE RATIO D'UTILISATION DES CAPACITES
+##! Cost share of input $f$ for sector $s$
+phi_n_K[sne] = K_n[sne] * CK[sne] / (K_n[sne] * CK[sne] + L_n[sne] * PROG_L[sne] * CL[sne] + E_n[sne] * PE[sne] + CEE[sne] + MAT_n[sne] * PMAT[sne])
+phi_n_L[sne] = L_n[sne] * PROG_L[sne] * CL[sne] / (K_n[sne] * CK[sne] + L_n[sne] * PROG_L[sne] * CL[sne] + E_n[sne] * PE[sne] + CEE[sne] + MAT_n[sne] * PMAT[sne])
+phi_n_E[sne] = (E_n[sne] * PE[sne] + CEE[sne]) / (K_n[sne] * CK[sne] + L_n[sne] * PROG_L[sne] * CL[sne] + E_n[sne] * PE[sne] + CEE[sne] + MAT_n[sne] * PMAT[sne])
+phi_n_MAT[sne] = MAT_n[sne] * PMAT[sne] / (K_n[sne] * CK[sne] + L_n[sne] * PROG_L[sne] * CL[sne] + E_n[sne] * PE[sne] + CEE[sne] + MAT_n[sne] * PMAT[sne])
+
+##! Capacité de production (fonction de production évaluée aux quantités effectives de facteurs, comme dans la V3)
+d(log(YCAP[sne])) = phi_n_L[sne] * d(log(L[sne] * PROG_L[sne]) ) + phi_n_K[sne] * d(log(K[sne] * PROG_K[sne]) ) + phi_n_E[sne] * d(log(E[sne] * PROG_E[sne]) ) + phi_n_MAT[sne] * d(log(MAT[sne]) ) if YCAP[sne] <> 0
+
+##! Capacity utilization ratio of the sector $s$
+CUR[sne] = Y[sne]/YCAP[sne]
+@over CUR_test[sne] = CUR[sne]
+
+#@over dlog(WAPop) = dlog(POP_TOT) - 0.5 * d(UNR_TOT)
+
+#@over UN_TOT = WAPop - L
+
+#@over UnR_TOT=Un_TOT/WAPop
+
+######################## demonstration de GRM[Y]_CT
+# dans Mesangeon a une spécification du type : 
+#d(M)=beta *d(M{-1}) +phi * d(Y) - lambda * (M{-1} -Y{-1} +eta * (PM{-1}-PY{-1}) + theta*(M{-1}/X{-1})  equation 1
+
+#d(M_LT)= d(Y) - eta * d(PM{-1}-PY{-1}) + theta*d(M{-1}/X{-1})
+
+# soit M_LT= Y - eta * (PM{-1}-PY{-1}) + theta*(M{-1}/X{-1}) equation (3)
+
+# on souhaite une spécification du type : 
+
+#d(M) = alpha * d(M{-1}) + (1-alpha)*d(M_n) + rho (M_LT{-1} -M{-1})
+
+#En remplacant d(M) par son expression de l'équation 1
+
+#beta *d(M{-1}) +phi * d(Y) - lambda * (M{-1} -Y{-1} +eta * (PM{-1}-PY{-1}) + theta*(M{-1}/X{-1})) = alpha * d(M{-1}) + (1-alpha)*d(M_n) + rho (M_LT{-1} -M{-1})
+
+# en remplacant le terme  -Y{-1} +eta * (PM{-1}-PY{-1}) + theta*(M{-1}/X{-1}) par - M_LT{-1} cf equation 3
+ 
+#beta *d(M{-1}) +phi * d(Y) - lambda * (M{-1} - M_LT{-1}) = alpha * d(M{-1}) + (1-alpha)*d(M_n) + rho (M_LT{-1} -M{-1})
+
+#d(M_n) = (beta*d(M{-1}) +phi * d(Y) - (lambda +rho)* (M{-1} - M_LT{-1}) - alpha * d(M{-1}))/(1- alpha)
+
+# si lambda = rho alors 
+
+#d(M_n) = (beta - alpha) *d(M{-1}) +phi * d(Y) )/(1- alpha)

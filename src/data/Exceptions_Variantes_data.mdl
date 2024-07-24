@@ -1,0 +1,26 @@
+###################################################################
+########## uniquement pour faire cahier de variantes ##############
+######### (simulation des chocs DGT avec codes de l'Ademe) ########
+###################################################################
+
+#### Modification pour tableaux de sorties ####
+
+MAT := sum (MAT[s] if MAT[s]<>0 on s)
+PMAT := sum (PMAT[s]*MAT[s] if MAT[s]<>0 on s)
+
+w_s_spb:= sum(W_S[s]*(1 + TCSE[s])*L_S[s]/L_s on s)
+w_spb := w_s_spb * L_s/L + w_se*L_se/L
+
+CL_S_bis[s] :=  CL_S[s]* PROG_L[s] 
+CL_SE_bis[s] := CL_SE[s]* PROG_L[s] 
+CL_S_bis := (sum(CL_S_bis[s] * L_S[s] on s))/L_S
+CL_SE_bis := (sum(CL_SE_bis[s] * L_SE[s] on s))/L_SE
+CL_bis  * L  := ( CL_S_bis  * L_S  + CL_SE_bis  * L_SE )
+
+#### AJOUTS CHOCS DGT POUR CAHIER DE VARIANTES####
+
+CHOC_K := 0
+CHOC_PGF := 0 
+CHOC_L := 0
+CHOC_E := 0
+choc_fossile[ce2]:=0
