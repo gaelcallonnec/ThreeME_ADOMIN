@@ -1,0 +1,209 @@
+include ..\model\lists
+
+
+#----------------------data for BUIL
+
+ENER_BUIL[h, ecl, ce] := (HOUSEHOLD_HYBRID_BUIL(40 + $ecl + ($ce - 1) * 8, $h)) *REAL_GDP_INDEX_DGT
+ 
+phi_BUIL[ecl] := HOUSEHOLD_HYBRID_BUIL(277 + $ecl, 1)      #modifié
+
+BUIL[h, ecl] := HOUSEHOLD_HYBRID_BUIL(8 + $ecl, $h) *REAL_GDP_INDEX_DGT
+
+delta_BUIL[h, ecl, bcl] := HOUSEHOLD_HYBRID_Trans(17 + $ecl, $bcl) 
+ 
+tau_REHAB[h, ecl] := HOUSEHOLD_HYBRID_BUIL(24 + $ecl, $h)
+  
+phi_REHAB[h, ecl, ecl2] := HOUSEHOLD_HYBRID_Trans(9 + $ecl, $ecl2)
+
+nu_REHAB[h, ecl] := HOUSEHOLD_HYBRID_BUIL(206 + $ecl, $h)              #déplacé
+  
+NewBUIL[h] := HOUSEHOLD_HYBRID_BUIL(277, $h)*REAL_GDP_INDEX_DGT
+  
+BUIL[bcl] := sum(BUIL[h, bcl] on h)
+  
+BUIL_verif[h] := sum(BUIL[h, ecl] on ecl)
+
+Verif_BUIL := 0
+
+BUIL_verif := BUIL
+  
+phi_NewBUIL[h, ecl] := HOUSEHOLD_HYBRID_BUIL(17 + $ecl, $h)
+
+M2perCapita := HOUSEHOLD_HYBRID_BUIL(17,1)                     #déplacé
+
+REHAB_D[h, ecl] := HOUSEHOLD_HYBRID_BUIL(268 + $ecl, $h)      #déplacé
+
+PREHAB[h, ecl, ecl2] := HOUSEHOLD_HYBRID_Trans(1 + $ecl, $ecl2) / (HOUSEHOLD_HYBRID_BUIL(16, 1)/HOUSEHOLD_HYBRID_BUIL(8, 1)) / 1000000* _
+                       PRICE_INDEX_DGT    #déplacé
+
+LD_REHAB[h, ecl] := HOUSEHOLD_HYBRID_BUIL(175 + $ecl, $h)         #déplacé
+
+LD[h, ecl] := HOUSEHOLD_HYBRID_BUIL(199 + $ecl, $h)       #déplacé
+
+BUIL_D[h, ecl] := HOUSEHOLD_HYBRID_BUIL(260 + $ecl, $h)     #déplacé
+
+PNewBUIL[h, ecl] := (HOUSEHOLD_HYBRID_BUIL(151 + $ecl, $h) / 1000000) * PRICE_INDEX_DGT    #déplacé
+  
+R_CASH_REHAB[h, ecl] := HOUSEHOLD_HYBRID_BUIL(159 + $ecl, $h)             #déplacé
+ 
+R_I_REHAB[h, ecl] := HOUSEHOLD_HYBRID_BUIL(166 + $ecl, $h)             #déplacé
+
+R_CASH_NewBUIL[h, ecl] := HOUSEHOLD_HYBRID_BUIL(236 + $ecl, $h)        #déplacé
+
+R_I_NewBUIL[h, ecl] := HOUSEHOLD_HYBRID_BUIL(244 + $ecl, $h)         #déplacé
+
+R_I_BUIL[h, ecl] := HOUSEHOLD_HYBRID_BUIL(191 + $ecl, $h)           #déplacé
+
+R_CASH[h, ecl] := HOUSEHOLD_HYBRID_BUIL(183 + $ecl, $h)            #déplacé
+
+GR_PENER_m2_e[h, ecl] := STEADYSTATE(15,1)                         #déplacé
+
+Ver_PREHABdelta[h, ecl] := 0
+
+R_SUB[h, ecl, ecl2] := HOUSEHOLD_HYBRID_BUIL(228 + $ecl, $h)           #déplacé
+
+EXP_BUIL[h, ecl, ce]  := (HOUSEHOLD_HYBRID_BUIL(120 + $ecl + ($ce - 1) * 8, $h)) * REAL_GDP_INDEX_DGT       #déplacé
+
+REHAB[h, ecl, ecl2] := @elem(phi_REHAB[h, ecl, ecl2] * tau_REHAB[h, ecl] * BUIL[h, ecl]{-1},%baseyear)*REAL_GDP_INDEX_DGT           #corrigé
+
+REHAB[h, ecl] := sum(REHAB[h, ecl, ecl2] on ecl2)
+
+BUIL[h, DES] := sum(delta_BUIL[h, ecl, DES] * BUIL[h, ecl]{-1} on ecl)
+                   
+NewBUIL[h, ecl] := @elem(phi_NewBUIL[h, ecl] * NewBUIL[h], %baseyear)*REAL_GDP_INDEX_DGT                   
+
+PENER_BUIL[h, ecl, ce] := PEXP[ce, h] * EXP_BUIL[h, ecl, ce] / ENER_BUIL[h, ecl, ce] if ENER_BUIL[h, ecl, ce] <> 0
+
+ENERperM2[h, ecl, ce] := @elem(ENER_BUIL[h, ecl, ce] / BUIL[h, ecl],%baseyear) if ENER_BUIL[h, ecl, ce] <> 0
+
+#------------------data for auto
+
+EXP_AUTO[h, ecl, ce] := (HOUSEHOLD_HYBRID_AUTO(1 + $ecl + ($ce - 1) * 8, $h))* REAL_GDP_INDEX_DGT    #déplacé
+
+PNewAUTO[h, ecl] := HOUSEHOLD_HYBRID_AUTO(118 + $ecl, $h) / 1000 * PRICE_INDEX_DGT    #déplacé
+
+R_CASH_AUTO[h, ecl] := HOUSEHOLD_HYBRID_AUTO(125 + $ecl, $h)                                  #déplacé
+
+R_I_AUTO[h, ecl] := HOUSEHOLD_HYBRID_AUTO(133 + $ecl, $h)                                    #déplacé
+
+R_LOAN_AUTO[h, ecl] := 1 - R_CASH_AUTO[h, ecl]                                              #déplacé
+
+LD_AUTO[h, ecl] := HOUSEHOLD_HYBRID_AUTO(141 + $ecl, $h)                                    #déplacé
+
+R_RMBS_AUTO[h, ecl] := HOUSEHOLD_HYBRID_AUTO(157 + $ecl, $h)                               #déplacé
+
+AUTO[h, ecl] := HOUSEHOLD_HYBRID_AUTO(32 + $ecl, $h) * REAL_GDP_INDEX_DGT
+
+phi_NewAUTO[h, ecl] := HOUSEHOLD_HYBRID_AUTO(111 + $ecl, $h) 
+
+AUTO_D[h, ecl] := 1/HOUSEHOLD_HYBRID_AUTO(172+ $ecl, $h)                              #déplacé
+
+delta_AUTO[h, ecl, DES] := HOUSEHOLD_HYBRID_Trans(25 + $ecl, 8)
+
+NewAUTO[h,ecl] := HOUSEHOLD_HYBRID_AUTO(220 + $ecl, $h)* REAL_GDP_INDEX_DGT                       #modifié NewAUTO[h, ecl] := @elem(phi_NewAUTO[h, ecl] * (AUTO[h] * HOUSEHOLD_HYBRID_BUIL(276, 1) / (1 + HOUSEHOLD_HYBRID_BUIL(276, 1)) + AUTO[h, DES]), %baseyear)
+
+SHARE_AUTO[h, ecl, 21] := HOUSEHOLD_HYBRID_AUTO(306 + $ecl, $h)               #déplacé
+
+SHARE_AUTO[h, ecl, 22] := HOUSEHOLD_HYBRID_AUTO(313 + $ecl, $h)               #déplacé
+
+SHARE_AUTO[h, ecl, 23] := HOUSEHOLD_HYBRID_AUTO(320 + $ecl, $h)                #déplacé
+
+SHARE_AUTO[h, ecl, 24] := HOUSEHOLD_HYBRID_AUTO(327 + $ecl, $h)                #déplacé
+
+AUTO[h,ce] := HOUSEHOLD_HYBRID_AUTO(334 + $ce, $h)* REAL_GDP_INDEX_DGT                             #déplacé       AUTO[h,ce] := sum(AUTO[h,ecl,ce] on ecl)
+
+AUTO_elec[h]:= (HOUSEHOLD_HYBRID_AUTO(274, $h))* REAL_GDP_INDEX_DGT     
+
+AUTO_elec[h,pcl]:= (HOUSEHOLD_HYBRID_AUTO(266 + $pcl, $h))* REAL_GDP_INDEX_DGT      
+
+NewAUTO[h] :=  (HOUSEHOLD_HYBRID_AUTO(220, $h))* REAL_GDP_INDEX_DGT
+
+AUTO_th[h,ecl] :=   (HOUSEHOLD_HYBRID_AUTO(274 + $ecl, $h))* REAL_GDP_INDEX_DGT
+
+GR_PENER_auto_e[h, ecl] := STEADYSTATE(15,1)
+
+R_CASH_AUTO_elec[h, pcl] := HOUSEHOLD_HYBRID_AUTO(125 + $pcl, $h)
+
+R_I_AUTO_elec[h, pcl] := HOUSEHOLD_HYBRID_AUTO(133 + $pcl, $h)
+
+R_LOAN_AUTO_elec[h, pcl] := 1 - R_CASH_AUTO_elec[h, pcl]
+
+LD_AUTO_elec[h, pcl] := HOUSEHOLD_HYBRID_AUTO(141 + $pcl, $h)
+
+R_RMBS_AUTO_elec[h, pcl] := HOUSEHOLD_HYBRID_AUTO(157 + $pcl, $h)
+
+AUTO_elec_D[h, pcl] := HOUSEHOLD_HYBRID_AUTO(172 + $pcl, $h)
+
+bonus_elec[h]:= 0
+
+Pbattery := 5000 * PRICE_INDEX_DGT
+
+overcost_elec := 4000 * PRICE_INDEX_DGT
+
+PAUTO_elec[h,pcl] := (HOUSEHOLD_HYBRID_AUTO(118 + $pcl, $h) + HOUSEHOLD_HYBRID_AUTO(217,1)) / 1000 * PRICE_INDEX_DGT   
+
+PNewAUTO_th[h,ecl] := (HOUSEHOLD_HYBRID_AUTO(118 + $ecl, $h)/1000)* PRICE_INDEX_DGT                                                                      
+
+#U_auto_elec[h,pcl]:= HOUSEHOLD_HYBRID_AUTO(208+$pcl,$h) #*PRICE_INDEX_DGT         #corrigé
+
+phi_elec[h,pcl]:= HOUSEHOLD_HYBRID_AUTO(236 + $pcl, $h)
+
+KM_AUTO_th[h,ecl,21] := HOUSEHOLD_HYBRID_AUTO(72+ $ecl, $h)*REAL_GDP_INDEX_DGT     
+
+KM_AUTO_th[h,ecl,22] := HOUSEHOLD_HYBRID_AUTO(80+ $ecl, $h)*REAL_GDP_INDEX_DGT      
+
+KM_AUTO_th[h,ecl,24] := HOUSEHOLD_HYBRID_AUTO(96+ $ecl, $h)*REAL_GDP_INDEX_DGT             
+
+#AUTO_th[h,ecl,ce2] := KM_AUTO_th[h,ecl,ce2]*AUTO_th[h,ecl]/(sum(KM_AUTO_th[h,ecl] on ecl))  
+
+AUTO_th[h,ecl,21] := HOUSEHOLD_HYBRID_AUTO(282+ $ecl, $h)*REAL_GDP_INDEX_DGT
+
+AUTO_th[h,ecl,22] := HOUSEHOLD_HYBRID_AUTO(290+ $ecl, $h)*REAL_GDP_INDEX_DGT
+
+AUTO_th[h,ecl,24] := HOUSEHOLD_HYBRID_AUTO(298+ $ecl, $h)*REAL_GDP_INDEX_DGT
+
+#U_auto_th[h,ecl]:= HOUSEHOLD_HYBRID_AUTO(349+$ecl,$h) *PRICE_INDEX_DGT            #corrigé
+ 					
+phi_th[h,ecl]:= HOUSEHOLD_HYBRID_AUTO(252 + $ecl, $h) 
+
+share_elec[h] := HOUSEHOLD_HYBRID_AUTO(229,1)
+
+
+ #-------------------------Transportation
+ 
+
+km_traveler_18[h] := HOUSEHOLD_HYBRID_AUTO(110, $h)*REAL_GDP_INDEX_DGT        #déplacé et modifié
+
+km_traveler_LD[h] := 248850.0986 * REAL_GDP_INDEX_DGT
+
+km_traveler_CD[h]:= (HOUSEHOLD_HYBRID_AUTO(111,$h))*REAL_GDP_INDEX_DGT -km_traveler_LD[h]-km_traveler_18[h]
+
+km_traveler_14[h] := HOUSEHOLD_HYBRID_AUTO(106, $h)*REAL_GDP_INDEX_DGT
+ 
+km_traveler_15[h] := HOUSEHOLD_HYBRID_AUTO(107, $h)*REAL_GDP_INDEX_DGT
+    
+km_auto_LD[h] := 74300592.83 *REAL_GDP_INDEX_DGT
+
+km_auto[h] := HOUSEHOLD_HYBRID_AUTO(72, $h) *REAL_GDP_INDEX_DGT
+
+km_auto[h, ecl] := HOUSEHOLD_HYBRID_AUTO(64+ $ecl, $h) *REAL_GDP_INDEX_DGT
+
+km_auto[h, ce] := HOUSEHOLD_HYBRID_AUTO(80+( $ce-1)*8, $h) *REAL_GDP_INDEX_DGT
+
+km_auto[h, ecl, ce] := HOUSEHOLD_HYBRID_AUTO(72+ $ecl+( $ce-1)*8, $h)  *REAL_GDP_INDEX_DGT
+
+nu_auto[h, ecl] := HOUSEHOLD_HYBRID_AUTO(165 + $ecl, $h)
+
+
+## EMISSIONS From Households
+
+# Consommation en KwH de l'energie
+EMS_HH_BUIL[ems, h, ecl] := HOUSEHOLD_HYBRID_BUIL(80 + $ecl + ($ems - 1) * 8, $h) * REAL_GDP_INDEX_DGT
+
+# Consommation en KwH de l'energie
+EMS_HH_BUIL[24, h, ecl] := HOUSEHOLD_HYBRID_BUIL(104 + $ecl, $h) * REAL_GDP_INDEX_DGT
+
+# EMISSIONS From Households: automobile
+
+# Consommation en KwH de l'energie
+EMS_HH_AUTO[22, h, ecl] := HOUSEHOLD_HYBRID_AUTO(188 + $ecl, $h) * REAL_GDP_INDEX_DGT

@@ -24,3 +24,19 @@ CHOC_PGF := 0
 CHOC_L := 0
 CHOC_E := 0
 choc_fossile[ce2]:=0
+R_exo := 0
+
+# ajout des intérêts au stock de dette des ménages (uniquement pour affichage, cahier de variantes)
+# pour le GOV ils sont inclus dans le deficit qui est utilise pour calculer la dette
+DEBT_REHAB_Val_tot[h,ecl] :=  DEBT_REHAB_Val[h,ecl] 
+DEBT_NewB_Val_tot[h,ecl] :=  DEBT_NewB_Val[h,ecl] 
+DEBT_AUTO_Val_tot[h,ecl] := DEBT_AUTO_Val[h,ecl]
+
+DEBT_REHAB_Val_tot2[h,ecl] :=  DEBT_REHAB_Val[h,ecl] + DEBT_REHAB_Val[h,ecl]{-1}*R_I_REHAB[h,ecl]{-1} 
+DEBT_NewB_Val_tot2[h,ecl] := DEBT_NewB_Val[h,ecl] + DEBT_NewB_Val[h,ecl]{-1}*R_I_NewBUIL[h,ecl]{-1}  
+DEBT_AUTO_Val_tot2[h,ecl] := DEBT_AUTO_Val[h,ecl] + DEBT_AUTO_Val[h,ecl]{-1}*R_I_AUTO[h,ecl]{-1}  
+
+DEBT_SNF_VAL[s] := 0
+DEBT_SNF_VAL := sum(DEBT_SNF_VAL[s] on s)
+R_SNF[s] := R[s]
+DEBT_SNF_ENER := sum(DEBT_SNF_VAL[se] on se)

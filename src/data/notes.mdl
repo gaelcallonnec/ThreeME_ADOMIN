@@ -1,104 +1,44 @@
-CHD_13  = ( ( EXPexo_13  - CHM_13 > 0 )  * ( EXPexo_13  - CHM_13 )  + ( EXPexo_13  - CHM_13  = < 0 )  * ( 1e-05 ) )  * ( @year <= 2019 )  + _
- ( CHD_13(-1)  * ( 1  + d(EXP_13  + SUB_REHAB_VAL)  / ( EXP_13(-1)  + SUB_REHAB_VAL(-1) )  + d(SUBST_CHD_13) ) )  * ( @year > 2019 )
+log(PY[s]) = ADJUST(17, 1) * log(PY_n[s]) + (1 - ADJUST(17, 1)) * (log(PY[s]{-1}) + d(log(PY_e[s])))
+
+d(log(PY_e[s])) = ADJUST(17, 2) * d(log(PY_e[s]{-1})) + ADJUST(17, 3) * d(log(PY[s]{-1})) + ADJUST(17, 4) * d(log(PY_n[s]))
+
+PY_n[s] = NCU_n[s] * (1 + TMD_n[s]) if Y[s] > 0
+
+@over dlog(PY_n[sne]) = 0.9*dlog(NCU_n[sne]) +(1-0.9)*@elem(dlog(NCU_n[sne]),%baseyear) + 0.15*(dlog(Y[sne])-dlog(Y_e[sne]{-1})) _
+           + 0.01 * (log (NCU_n[sne]{-1}*(1+TMD_n[sne]{-1}))-log(PY_n[sne]{-1})) if Y[sne] > 0
+
+NCU_n[s] * Y[s] = CU_n[s] * Y[s] + PIY[s] * IY[s] + PSY[s] * SY[s] + PIS[s] * IS[s] if Y[s] > 0
+
+CU_n[s] * Y[s] = CK[s] * K_n[s] + CL[s] * L_n[s] * PROG_L[s] + PE[s] * E_n[s] + PMAT[s] * MAT_n[s] if Y[s] > 0
+
+Avec exception DGT
+
+d(log(IA_n_des[sne]))  = d(IMP_BUD_niv_bis[sne]) + ( ADJUST(1  , 1)  * dlog(IA_n_des[sne]{-1})  + 1.8  * dlog(Y[sne]) + _
+ 0.28  * ( log(IA_notionnel[sne]{-1}) + IMP_BUD_niv_bis[sne]{-1} - log(IA_n_des[sne]{-1}) )  + ADJUST(1, 4) * 0 * d(SUBST_K[sne]) ) if IA_n[sne] <> 0 
+
+@over d(log(K_n_14))  = ( @year <= 2019 )  * ( K_n_14 > 0 )  * ( dlog(K_14) )  + ( @year > 2019 )  * ( dlog(Y_14)  + _
+                         0*d(SUBST_K_14)  - dlog(PROG_K_14)  + Choc_CSC_14 + IMP_BUD_14  * GDP{-1}  / IA_14{-1}) 
+                         
+d(log(IA_notionnel_noshock_14))  = dlog(Y_14)  + d(SUBST_K_14)  - dlog(PROG_K_14)
+
  
-   @over EXP_13[h] = (CHD_13 - SUB_REHAB_VAL)*(@year<=2019) + _
-                    (@year>2019)*(( @year > %baseyear )*( @elem(PNewBUIL[h],%baseyear) _
-                     * NewBUIL[h] + @elem(PREHAB[h],%baseyear) * REHAB[h] + EXP_13_OTH_Val[h] / PCH_13 
-
-#EXP_13[h] := @elem(PNewBUIL[h] * NewBUIL[h] + PREHAB[h] * REHAB[h] +  EXP_13_OTH_val[h] / PCH_13, %baseyear) * (1 + STEADYSTATE(2, 1)) ^ (@year - %baseyear)
-
-EXP_13[h] := CHD_13 - SUB_REHAB_VAL
+ K_14  = ( 1  - Tdec_14 )  * K_14(-1)  + IA_14
  
- @over PEXP_13_H01  * EXP_13_H01  = PNewBUIL_H01  * NewBUIL_H01  + _
-                ( 0  + PREHAB_H01_CA  * REHAB_H01_CA  + PREHAB_H01_CB  * REHAB_H01_CB  + PREHAB_H01_CC  * REHAB_H01_CC  + PREHAB_H01_CD  * REHAB_H01_CD  + PREHAB_H01_CE  * REHAB_H01_CE  + PREHAB_H01_CF  * REHAB_H01_CF  + PREHAB_H01_CG  * REHAB_H01_CG ) _
-              + EXP_13_OTH_Val_H01  + choc_PAC_VAl
+ d(log(IA_n_14))  = ( @year <= 2019 )  * ( ( IAexo_14 > 0 )  * ( dlog(IAexo_14) ) )  + ( @year > 2019 )  * ( d(log(IA_n_des_14  + IA_FC_14)) )
 
-d(log(BUIL_H01))  = ( @year > 2006 )  * ( d(log(POP_tot))  + d(log(M2perCapita)) )  + ( @year <= 2006 )  * log(1  + STEADYSTATE(2  , 1))
-
-NEWBUIL_H01  = 0  + NEWBUIL_H01_CA  + NEWBUIL_H01_CB  + NEWBUIL_H01_CC  + NEWBUIL_H01_CD
-
-NewBUIL_H01_CC  = ( @year > 2006 )  * phi_NewBUIL_H01_CC  * ( d(BUIL_H01)  + BUIL_H01_DES )  + ( @year <= 2006 )  * @elem(NewBUIL_H01_CC , 2006)  * ( 1  + STEADYSTATE(2 , 1) ) ^ ( @year  - 2006 )
-
-#NewBUIL[h, ecl] := @elem(phi_NewBUIL[h, ecl] * (BUIL[h] * HOUSEHOLD_HYBRID_BUIL(276, 1) / _
-#                   (1 + HOUSEHOLD_HYBRID_BUIL(276, 1)) + BUIL[h, DES]), %baseyear)*(1 + STEADYSTATE(2, 1)) ^ (@year - %baseyear)
-                   
-NewBUIL[h, ecl] := @elem(phi_NewBUIL[h, ecl] * NewBUIL[h], %baseyear)*(1 + STEADYSTATE(2, 1)) ^ (@year - %baseyear) 
-
-NewBUIL[h] := @elem(BUIL[h] * HOUSEHOLD_HYBRID_BUIL(276, 1) / (1 + HOUSEHOLD_HYBRID_BUIL(276, 1)) + BUIL[h, DES]), %baseyear)*(1 + STEADYSTATE(2, 1)) ^ (@year - %baseyear)
-
-@over I_MDE[ce,road] = @elem(PNew_Trucks[ce,road], %baseyear) * New_trucks[ce,road] +  @elem(PNew_LUV[ce,road], %baseyear)*New_LUV[ce,road] where ce in %list_com_E \ 21 22
-
-dlog(PNew_LUV[ce,16]) = (@year<=2019)*dlog(1) +(@year>2019)*dlog(PMAT_03_16)
-
-dlog(PNew_Trucks[ce,road]) = (@year<=2019)*dlog(1) + (@year>2019)*dlog(PMAT_03[road]) 
-
-IA_15  = 0  + IA_01_15  + IA_02_15  + IA_03_15  + IA_04_15  + IA_05_15  + IA_06_15  + IA_07_15  + IA_08_15  + IA_09_15  + IA_10_15  + IA_11_15  + IA_12_15  + IA_13_15  + IA_14_15  + IA_15_15  + IA_16_15  + IA_17_15  + IA_18_15  + IA_19_15  + IA_20_15  + IA_21_15  + IA_22_15  + IA_23_15  + IA_24_15
-
-IA_03_15  = IAD_03_15  + IAM_03_15
-
-IAD_03_15  = ( ( IA_n_03_15  - IAM_03_15 > 0 )  * ( IA_n_03_15  - IAM_03_15 )  + ( IA_n_03_15  - IAM_03_15 <= 0 )  * 0.0001 )  * ( @year <= 2019 )  + ( IAD_03_15(-1)  * ( 1  + ( IA_n_03_15 > 0 )  * ( d(IA_n_03_15)  / IA_n_03_15(-1)  + d(SUBST_IAD_03_15) ) ) )  * ( @year > 2019 )
-
-IAM_03_15  = ( IAM_03_15(-1)  * ( 1  + ( QMexo_03 > 0 )  * ( d(QMexo_03)  / QMexo_03(-1) ) ) )  * ( @year <= 2019 )  + ( IAM_03_15(-1)  * ( 1  + ( IA_n_03_15 > 0 )  * ( d(IA_n_03_15)  / IA_n_03_15(-1)  + d(SUBST_IAM_03_15) ) ) )  * ( @year > 2019 )
-
-dlog(IA_n_03_15)  = ( @year <= 2019 )  * ( IAexo_15 > 0 )  * dlog(IAexo_15)  + ( @year > 2019 )  * dlog(PTrucks_cst_15  * New_Trucks_15)
-
-d(log(PARTR_e_M_65))  = 0.05  * d(log(PARTR_e_M_65(-1)))  + 0.65  * d(log(PARTR_M_65(-1)))  + 0.3  * d(log(PARTR_n_M_65))
-
-d(PARTR_n_M_65)  = d(PARTR_trend_M_65)  + betaEmp_M_65  * d(UnR_M_65) negatif en 2022
+sans exception DGT
 
 
-UnR_M_65  = Un_M_65  / LF_M_65
+@over IA_n_14  = ( @year <= 2019 )  * ( ( IAexo_14 > 0 )  * IAexo_14 )  + ( @year > 2019 )  * ( IA_14{-1}*(1+dlog(Y_14) ) _
+                + 1  * ( K_n_14{-1}  - K_14{-1})  + 0  * d(SUBST_K_14)  + IMP_BUD_14  * GDP{-1}  / IA_14{-1} )
+                
+ d(log(K_n_14))  = ( @year <= 2019 )  * ( K_n_14 > 0 )  * ( dlog(K_14) )  + ( @year > 2019 )  * ( dlog(Y_14)  + 0  * d(SUBST_K_14)  - dlog(PROG_K_14)  + Choc_CSC_14  + IMP_BUD_14  * GDP(-1)  / IA_14(-1) )
 
-Un_M_65  = LF_M_65  - Empl_M_65 #négatif en 2017
+K_14  = ( 1  - Tdec_14 )  * K_14(-1)  + IA_14
 
-LF_M_65  = PARTR_M_65  * WAPop_M_65
+d(log(K_n_03))  = ( @year <= 2019 )  * ( K_n_03 > 0 )  * ( dlog(K_03) )  + ( @year > 2019 )  * ( dlog(Y_03)  + d(SUBST_K_03)  - dlog(PROG_K_03)  + Choc_CSC_03 )
 
-d(log(empl_M_65))  = d(log(L))
-
-dlog(IA_n_noshock_15)  = ( @year <= 2019 )  * ( ( IAexo_15 > 0 )  * ( dlog(IAexo_15) ) )  + ( @year > 2019 )  * ( ADJUST(1 , 1)  * dlog(IA_15(-1))  + 1.5  * dlog(Y_15)  + 0.28  * ( log(IA_notionnel_15(-1))  - log(IA_n_15(-1)) )  + 0  * d(SUBST_K_15) )
-
-IA_15  = 0  + IA_01_15  + IA_02_15  + IA_03_15  + IA_04_15  + IA_05_15  + IA_06_15  + IA_07_15  + IA_08_15  + IA_09_15  + IA_10_15  + IA_11_15  + IA_12_15  + IA_13_15  + IA_14_15  + IA_15_15  + IA_16_15  + IA_17_15  + IA_18_15  + IA_19_15  + IA_20_15  + IA_21_15  + IA_22_15  + IA_23_15  + IA_24_15
-ia_15( négatif en 2024)
-
-IA_01_15  = IAD_01_15  + IAM_01_15
-
-IAD_03_15  = ( ( IA_n_03_15  - IAM_03_15 > 0 )  * ( IA_n_03_15  - IAM_03_15 )  + ( IA_n_03_15  - IAM_03_15 <= 0 )  * 0.0001 )  * ( @year <= 2019 )  + ( IAD_03_15(-1)  * ( 1  + ( IA_n_03_15 > 0 )  * ( d(IA_n_03_15)  / IA_n_03_15(-1)  + d(SUBST_IAD_03_15) ) ) )  * ( @year > 2019 )
-#négatif en 2024   d(IA_n_03_15)  / IA_n_03_15(-1)=-1.56 en 2021
-IAM_03_15  = ( IAM_03_15(-1)  * ( 1  + ( QMexo_03 > 0 )  * ( d(QMexo_03)  / QMexo_03(-1) ) ) )  * ( @year <= 2019 )  + ( IAM_03_15(-1)  * ( 1  + ( IA_n_03_15 > 0 )  * ( d(IA_n_03_15)  / IA_n_03_15(-1)  + d(SUBST_IAM_03_15) ) ) )  * ( @year > 2019 )
-#négatif en 2024
-
-IA_n_03_15  = IA_n_03_15(-1)  / ( IA_n_03_15(-1)  + IA_n_12_15(-1) )  * PTrucks_cst_15  * New_Trucks_15
-new_trucks_15 est négatif
-
-IA_notionnel_15  = IA_notionnel_noshock_15  + ( @year > 2019 )  * ( IMP_BUD_niv_15  + Choc_CSC_niv_15 )
-
-Y_15  = 0  + Y_15_15
-
-Y_15_15  = PhiY_15_15  * YQ_15
-
-YQ_15  * PYQ_15  = PQD_15  * QD_15  - PVATD_15  * VATD_15  - POTHTD_15  * OTHTD_15  - PSUBD_15  * SUBD_15  - ( PMCD_15  * MCD_15  + PMTD_15  * MTD_15 )  - PENERTD_15  * ENERTD_15
-
-QD_15  = CID_15  + CHD_15  + GD_15  + ID_15  + XD_15  + DSD_15
-
-CID s'effondre à partir de 2023, Y_15 baisse si bien que newtrucks diminue et l'investissement devient négatif. 
-
-New_trucks_22_15  = Trucks_22_15  - Trucks_22_15(-1)  * ( 1  - tdec_15 )
-
-dlog(KM_AUTO_elec_H01_CF)  = dlog(AUTO_elec_H01_CF)  + dlog(KmPerAuto_H01)
-
-d(AUTO_elec_H01_CF)  = ( @year > 2006 )  * ( NewAUTO_H01  * share_elec_H01  * phi_elec_H01_CF  - delta_AUTO_H01_CA_DES  * AUTO_elec_H01_CF(-1) )  + ( @year <= 2006 )  * ( AUTO_elec_H01_CF(-1)  * STEADYSTATE(2 , 1) )
-
-NewAUTO_H01  = ( @year > 2006 )  * ( d(AUTO_N)  + AUTO_H01_DES )  + ( @year  = < 2006 )  * NewAUTO_H01(-1)  * ( 1  + STEADYSTATE(2  , 1) ) baisse tres fortement en 2022 car Km_auto chute 
-
-phi_elec_H01_CF  = phi_elec_e_H01_CF  / phi_elec_n_tot_H01
- # phi_elec_h01_CF devient négatif en 2026
- 
- phi_elec_e_H01_CF  = ( phi_elec_n_H01_CF > 0 )  * phi_elec_n_H01_CF  + ( phi_elec_n_H01_CF <= 0 )  * 0
-
-d(log(L_e_21))  = 0.05  * d(log(L_e_21(-1)))  + 0.65  * d(log(L_21(-1)))  + 0.3  * d(log(L_n_21))
-
-d(log(L_n_21))  = d(log(Y_21))  - d(log(PROG_L_21))  + d(SUBST_L_21) #négatif en 2026
-
-d(log(GD_24))  = d(log(EXPG_24))  + d(SUBST_GD_24)
-
-
+dlog(IA_n_03)  = ( @year <= 2019 )  * ( ( IAexo_03 > 0 )  * ( dlog(IAexo_03) ) )  + _ 
+                  ( @year > 2019 )  * ( ADJUST(1 , 1)  * dlog(IA_03(-1))  + ADJUST(1 , 2)  * dlog(Y_e_03)  + _
+                   ADJUST(1 , 3)  * ( log(K_n_03(-1))  - log(K_03(-1)) )  + ADJUST(1 , 4)  * d(SUBST_K_03) )
+               

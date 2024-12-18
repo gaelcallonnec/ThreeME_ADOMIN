@@ -5,7 +5,12 @@ subroutine configuration
 
 ' Data calibrations to be used in the model run - file names are space-separated and found inside data\calibration
 ' Example: to run the NEW, NR_AS_G and NR_AS_G_WS calibrations, use "NEW NR_AS_G NR_AS_G_WS"
+
+if %exceptions_DGT="yes" then
+%calibrations = "FRA_AME_DGT"
+else
 %calibrations = "FRA_AME"
+endif
 
 ' Shocks to run, filenames are space-separated and found inside data\shocks
 ' Example: to run the SCEN_AMS2, use "SCEN_AMS2"

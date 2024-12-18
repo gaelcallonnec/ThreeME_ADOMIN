@@ -1,0 +1,222 @@
+include ..\model\lists
+
+P :=  1 * PRICE_INDEX_DGT
+
+QD[c] := SUPPLY_USE_DOM($c,(NELEMSET(1,1)+1)+NELEMSET(5,1)+NELEMSET(7,1)+NELEMSET(1,1)+11) * REAL_GDP_INDEX_DGT
+CHD[c] := SUPPLY_USE_DOM($c,(NELEMSET(1,1)+1)+NELEMSET(5,1)+NELEMSET(7,1)+NELEMSET(1,1)+1) * REAL_GDP_INDEX_DGT
+GD[c] := SUPPLY_USE_DOM($c,(NELEMSET(1,1)+1)+NELEMSET(5,1)+NELEMSET(7,1)+NELEMSET(1,1)+2) * REAL_GDP_INDEX_DGT
+ID[c] := SUPPLY_USE_DOM($c,(NELEMSET(1,1)+1)+NELEMSET(5,1)+NELEMSET(7,1)+NELEMSET(1,1)+3) * REAL_GDP_INDEX_DGT
+DSD[c] := SUPPLY_USE_DOM($c,(NELEMSET(1,1)+1)+NELEMSET(5,1)+NELEMSET(7,1)+NELEMSET(1,1)+5) * REAL_GDP_INDEX_DGT
+XD[c] := SUPPLY_USE_DOM($c,(NELEMSET(1,1)+1)+NELEMSET(5,1)+NELEMSET(7,1)+NELEMSET(1,1)+4) * REAL_GDP_INDEX_DGT
+
+VATD[c] := SUPPLY_USE_DOM($c,(NELEMSET(1,1)+1)+NELEMSET(5,1)+1) * REAL_GDP_INDEX_DGT
+OTHTD[c] := SUPPLY_USE_DOM($c,(NELEMSET(1,1)+1)+NELEMSET(5,1)+5) * REAL_GDP_INDEX_DGT
+SUBD[c] := SUPPLY_USE_DOM($c,(NELEMSET(1,1)+1)+NELEMSET(5,1)+NELEMSET(7,1)) * REAL_GDP_INDEX_DGT
+ENERTD[c] := SUPPLY_USE_DOM($c,(NELEMSET(1,1)+1)+NELEMSET(5,1)+4) * REAL_GDP_INDEX_DGT
+VATD_HSH[c] := SUPPLY_USE_DOM($c,(NELEMSET(1,1)+1)+NELEMSET(5,1)+2) * REAL_GDP_INDEX_DGT
+VATD_OTH[c] := SUPPLY_USE_DOM($c,(NELEMSET(1,1)+1)+NELEMSET(5,1)+3) * REAL_GDP_INDEX_DGT
+MCD[c] := SUPPLY_USE_DOM($c,(NELEMSET(1,1)+1)+NELEMSET(5,1)) * REAL_GDP_INDEX_DGT
+YQ[c] := SUPPLY_USE_DOM($c,NELEMSET(1,1)+1) * REAL_GDP_INDEX_DGT
+  
+QM[c] := SUPPLY_USE_FOREIGN($c,1+NELEMSET(5,1)+NELEMSET(7,1)+NELEMSET(1,1)+11) * REAL_GDP_INDEX_DGT
+CHM[c] := SUPPLY_USE_FOREIGN($c,1+NELEMSET(5,1)+NELEMSET(7,1)+NELEMSET(1,1)+1) * REAL_GDP_INDEX_DGT
+GM[c] := SUPPLY_USE_FOREIGN($c,1+NELEMSET(5,1)+NELEMSET(7,1)+NELEMSET(1,1)+2) * REAL_GDP_INDEX_DGT
+IM[c] := SUPPLY_USE_FOREIGN($c,1+NELEMSET(5,1)+NELEMSET(7,1)+NELEMSET(1,1)+3) * REAL_GDP_INDEX_DGT
+DSM[c] := SUPPLY_USE_FOREIGN($c,1+NELEMSET(5,1)+NELEMSET(7,1)+NELEMSET(1,1)+5) * REAL_GDP_INDEX_DGT
+XM[c] := SUPPLY_USE_FOREIGN($c,1+NELEMSET(5,1)+NELEMSET(7,1)+NELEMSET(1,1)+4) * REAL_GDP_INDEX_DGT
+
+OTHTM[c] := SUPPLY_USE_FOREIGN($c,1+NELEMSET(5,1)+5) * REAL_GDP_INDEX_DGT
+SUBM[c] := SUPPLY_USE_FOREIGN($c,1+NELEMSET(5,1)+6) * REAL_GDP_INDEX_DGT
+ENERTM[c] := SUPPLY_USE_FOREIGN($c,1+NELEMSET(5,1)+4) * REAL_GDP_INDEX_DGT
+VATM_HSH[c] := SUPPLY_USE_FOREIGN($c,1+NELEMSET(5,1)+2) * REAL_GDP_INDEX_DGT
+VATM_OTH[c] := SUPPLY_USE_FOREIGN($c,1+NELEMSET(5,1)+3) * REAL_GDP_INDEX_DGT
+MCM[c] := SUPPLY_USE_FOREIGN($c,1+NELEMSET(5,1)) * REAL_GDP_INDEX_DGT
+VATM[c] := SUPPLY_USE_FOREIGN($c,1+NELEMSET(5,1)+1) * REAL_GDP_INDEX_DGT
+
+CID[c, s] := SUPPLY_USE_DOM($c,(NELEMSET(1,1)+1)+ NELEMSET(5,1)+ NELEMSET(7,1)+$s) * REAL_GDP_INDEX_DGT
+CIM[c, s] := SUPPLY_USE_FOREIGN($c,1+NELEMSET(5,1)+NELEMSET(7,1)+$s) * REAL_GDP_INDEX_DGT        
+       
+Y[c, s] := SUPPLY_USE_DOM($c,$s) * REAL_GDP_INDEX_DGT
+PhiY[c, s] := SUPPLY_USE_DOM($c,$s)/SUPPLY_USE_DOM($c,NELEMSET(1,1)+1)
+                 
+MTD[trsp, c] := SUPPLY_USE_DOM($c,(NELEMSET(1,1)+2)+$trsp-1) * REAL_GDP_INDEX_DGT
+MTM[trsp, c] := SUPPLY_USE_FOREIGN($c,1+$trsp) * REAL_GDP_INDEX_DGT
+             
+W_SE := SUPPLY_USE_DOM((NELEMSET(3,1)+1)+2+(NELEMSET(11,1)+1)+(NELEMSET(9,1)+3)+(3*NELEMSET(11,1)),( NELEMSET(1,1)+1)) * NOM_WAGE_INDEX_DGT            
+
+TCSS := OTH_VARIABLE(8,1)
+TCSS_SE := OTH_VARIABLE(9,1)
+
+W_S[h] := household(56,$h) * NOM_WAGE_INDEX_DGT
+W_SE[h] := household(57,$h) * NOM_WAGE_INDEX_DGT
+L_S[h] := household(58,$h) * POP_INDEX_DGT
+L_SE[h] := household(59,$h) * POP_INDEX_DGT
+SB_ROW[h] := household(60,$h) * NOM_GDP_INDEX_DGT
+CSS_H[h] := household(61,$h) * REAL_GDP_INDEX_DGT
+CSS_H_SE[h] := household(62,$h) * REAL_GDP_INDEX_DGT
+PRESOC_DOM_VAL[h] := household(63,$h) * NOM_GDP_INDEX_DGT 
+TR_ROW_VAL[h] := household(64,$h) * NOM_GDP_INDEX_DGT 
+INT_VAL[h] := household(65,$h) * NOM_GDP_INDEX_DGT 
+DIV_HH_VAL[h] := household(66,$h) * NOM_GDP_INDEX_DGT
+
+IS_Val := SUPPLY_USE_DOM((NELEMSET(3,1)+1)+2+(NELEMSET(11,1)+1)+1,( NELEMSET(1,1)+1)) * NOM_GDP_INDEX_DGT
+PRESOC_ROW_VAL := OTH_VARIABLE(2,1) * NOM_GDP_INDEX_DGT
+
+PROG_L := PROG_L_INDEX_DGT
+
+IA[s] :=   SUPPLY_USE_DOM((NELEMSET(3,1)+1)+2+(NELEMSET(11,1)+1)+(NELEMSET(9,1)+1),$s) * REAL_GDP_INDEX_DGT 
+L_S[s] :=  SUPPLY_USE_DOM((NELEMSET(3,1)+1)+2+(NELEMSET(11,1)+1)+(NELEMSET(9,1)+3)+1,$s) * POP_INDEX_DGT
+L_SE[s] := SUPPLY_USE_DOM((NELEMSET(3,1)+1)+2+(NELEMSET(11,1)+1)+(NELEMSET(9,1)+3)+NELEMSET(11,1),$s) * POP_INDEX_DGT
+W_SE[s] := SUPPLY_USE_DOM((NELEMSET(3,1)+1)+2+(NELEMSET(11,1)+1)+NELEMSET(9,1)+3+(3*NELEMSET(11,1)),$s) * NOM_WAGE_INDEX_DGT
+CL_S[s] := SUPPLY_USE_DOM((NELEMSET(3,1)+1)+2+(NELEMSET(11,1)+1)+NELEMSET(9,1)+3+(NELEMSET(11,1)+1),$s) * PRICE_INDEX_DGT    
+K[s] :=    SUPPLY_USE_DOM((NELEMSET(3,1)+1)+2+(NELEMSET(11,1)+1)+NELEMSET(9,1)+3,$s) * REAL_GDP_INDEX_DGT
+Tdec[s] := SUPPLY_USE_DOM((NELEMSET(3,1)+1)+2+(NELEMSET(11,1)+1)+NELEMSET(9,1)+2,$s) 
+W_S[s] :=  SUPPLY_USE_DOM((NELEMSET(3,1)+1)+2+(NELEMSET(11,1)+1)+NELEMSET(9,1)+3+(NELEMSET(11,1)+3),$s) * NOM_WAGE_INDEX_DGT   
+CSE[s] :=  SUPPLY_USE_DOM((NELEMSET(3,1)+1)+2+(NELEMSET(11,1)+1),$s) * REAL_GDP_INDEX_DGT
+IY[s] :=   SUPPLY_USE_DOM((NELEMSET(3,1)+1)+2+(NELEMSET(11,1)+1)+2,$s) * REAL_GDP_INDEX_DGT
+SY[s] :=   SUPPLY_USE_DOM((NELEMSET(3,1)+1)+2+(NELEMSET(11,1)+1)+NELEMSET(9,1),$s) * REAL_GDP_INDEX_DGT    
+   
+DIV_GOV_VAL := OTH_VARIABLE(3,1) * NOM_GDP_INDEX_DGT
+DIV_ROW_VAL := OTH_VARIABLE(5,1) * NOM_GDP_INDEX_DGT 
+DIV_BK_VAL := OTH_VARIABLE(6,1) * NOM_GDP_INDEX_DGT  
+CSE_ROW := OTH_VARIABLE(1,1) * REAL_GDP_INDEX_DGT
+
+MATD[cm, s] := SUPPLY_USE_DOM($cm,(NELEMSET(1,1)+1)+NELEMSET(5,1)+NELEMSET(7,1)+$s) * REAL_GDP_INDEX_DGT
+MATM[cm, s] := SUPPLY_USE_FOREIGN(+$cm,1+NELEMSET(5,1)+NELEMSET(7,1)+$s) * REAL_GDP_INDEX_DGT
+
+ED[ce, s] := SUPPLY_USE_DOM((NELEMSET(3,1)-NELEMSET(4,1)+1)+$ce-1,(NELEMSET(1,1)+1)+NELEMSET(5,1)+NELEMSET(7,1)+$s) * REAL_GDP_INDEX_DGT
+EM[ce, s] := SUPPLY_USE_FOREIGN((NELEMSET(3,1)-NELEMSET(4,1)+1)+$ce-1,1+NELEMSET(5,1)+NELEMSET(7,1)+$s) * REAL_GDP_INDEX_DGT
+IA[c, s] := INV_MAT($c,$s) * REAL_GDP_INDEX_DGT
+
+#---------------------------***LOAD EMISSION DATA***---------------------------------
+
+
+
+#-----------------------Data for MTEP
+
+Q_Mtep_ef[ce,se] := MTEP($se, 15+$ce) * REAL_GDP_INDEX_DGT
+
+Q_Mtep_X[ce,se] := MTEP($se, 19+$ce) * REAL_GDP_INDEX_DGT
+
+Q_Mtep_Nener[ce,se] := MTEP($se, 24+$ce) * REAL_GDP_INDEX_DGT
+
+Q_Mtep_Nener[ce] := sum (Q_Mtep_Nener[ce,se] on se)
+ 
+Q_Mtep_int[ce,se] := MTEP($se, 34+$ce) * REAL_GDP_INDEX_DGT
+
+Q_Mtep_Losses[ce,se] := MTEP($se, 38+$ce) * REAL_GDP_INDEX_DGT
+
+Q_Mtep_indus[ce,s] := MTEP_INDUS($s, $ce) * REAL_GDP_INDEX_DGT
+
+Q_Mtep_H_BUIL[ce] := MTEP_USE(1, $ce)*REAL_GDP_INDEX_DGT
+                  
+Q_Mtep_H_AUTO[ce] := MTEP_USE(2, $ce)*REAL_GDP_INDEX_DGT
+
+Q_Mtep_SEC[ce, sne] :=  MTEP_USE(12 + $sne, $ce)*REAL_GDP_INDEX_DGT 
+
+Q_Mtep_H_BUIL := sum(Q_Mtep_H_BUIL[ce] on ce)
+
+Q_Mtep_H_AUTO := sum(Q_Mtep_H_AUTO[ce] on ce)
+
+Q_Mtep_SEC_SOU[ce] := sum(Q_Mtep_SEC[ce, sne] on sne)
+
+Q_Mtep_SEC[sne] := sum(Q_Mtep_SEC[ce, sne] on ce)
+
+Q_Mtep_H := Q_Mtep_H_BUIL + Q_mtep_H_AUTO
+
+Q_Mtep_SEC := sum(Q_Mtep_SEC_SOU[ce] on ce)
+
+Verif_Q_Mtep_HSEC := 0
+
+EMS_SEC[ce2, s] := EMISSION($s, $ce2) * REAL_GDP_INDEX_DGT
+
+@over EMS_SEC_21[sne] := Q_Mtep_SEC_21[sne]*1000000*4                 
+
+@over EMS_SEC_22[sne] := Q_Mtep_SEC_22[sne]*IC_22[sne]*1000000*3.05      
+
+@over EMS_SEC_24[sne] := Q_Mtep_SEC_24[sne]*IC_24[sne]*1000000*2.4        
+
+EMS_SEC_indus[ce, s] := EMS_INDUS($s, $ce) * REAL_GDP_INDEX_DGT     
+
+EMS_DC[s] := EMISSION($s, 4) * REAL_GDP_INDEX_DGT
+
+EMS_HH[ce2, h] := household(70+$ce2, $h) * REAL_GDP_INDEX_DGT
+
+#EXO[ce2,s] := EMISSION(45+$s, $ce2)
+
+#Exoneration ETS
+
+EXO_ETS := 1
+
+EXO_NETS := 0 
+
+EXO[ce, s] := 0 
+
+@over EXO[ce2, sets] := EXO_ETS
+
+@over EXO[ce2, snets] := EXO_NETS 
+                    
+#  '---------------------------***DEMOGRAPHY***---------------------------------
+
+Empl_M[age] := DEMOGRAPHY($age,1) * POP_INDEX_DGT
+LF_M[age] := DEMOGRAPHY($age,2) * POP_INDEX_DGT 
+WAPop_M[age] := DEMOGRAPHY($age,3) * POP_INDEX_DGT 
+PARTR_M[age] := DEMOGRAPHY($age,6) 
+betaEmp_M[age] := DEMOGRAPHY($age,7)  
+                                                       
+Empl_W[age] := DEMOGRAPHY(6+$age,1) * POP_INDEX_DGT
+LF_W[age] := DEMOGRAPHY(6+$age,2) * POP_INDEX_DGT 
+WAPop_W[age] := DEMOGRAPHY(6+$age,3) * POP_INDEX_DGT  
+
+WAPop_W := sum(WAPop_W[age] on age)
+
+WAPop_M := sum(WAPop_M[age] on age)
+
+WAPop := WAPop_M + WAPop_W
+
+verif_L := L - L_S - L_SE
+
+PARTR_W[age] := DEMOGRAPHY(6+$age,6) 
+betaEmp_W[age] := DEMOGRAPHY(6+$age,7)  
+                                                       
+POP_TOT := household(55,1) * POP_INDEX_DGT   
+
+#    '------------------------GOVERNMENT------------------------------------'
+
+EXPGD[c] := SUPPLY_USE_DOM($c, (NELEMSET(1,1)+1)+NELEMSET(5,1)+NELEMSET(7,1)+NELEMSET(1,1)+2) * REAL_GDP_INDEX_DGT  
+EXPGM[c] := SUPPLY_USE_FOREIGN($c, 1+NELEMSET(5,1)+NELEMSET(7,1)+NELEMSET(1,1)+2) * REAL_GDP_INDEX_DGT  
+
+R_DIR := INTEREST_DGT
+R := INTEREST_DGT
+
+infl_ZE_target := STEADYSTATE(39,1)
+infl_FR := STEADYSTATE(15,1)
+infl_HFR := STEADYSTATE(43,1)
+
+UnR_ZE_target := STEADYSTATE(40,1)
+UnR_HFR := STEADYSTATE(44,1)
+PHI_TCO[h] := household(2,$h) 
+
+EXP[c,h] := household(2+$c,$h) * REAL_GDP_INDEX_DGT 
+IR_VAL[h] := household(67,$h) * NOM_GDP_INDEX_DGT
+AIC_VAL[h] := household(68,$h) * NOM_GDP_INDEX_DGT
+
+DEBT_G_VAL := OTH_VARIABLE(7,1) * NOM_GDP_INDEX_DGT
+INC_GOV_OTH_net := OTH_VARIABLE(4,1) * NOM_GDP_INDEX_DGT
+
+phi_K[s]   := K[s] * CK[s]             / (CU[s] * Y[s])
+phi_L[s]   := L[s] * PROG_L[s] * CL[s] / (CU[s] * Y[s])
+phi_E[s]   := (E[s] * PE[s] + CEE[s])            / (CU[s] * Y[s])
+phi_MAT[s] := MAT[s] * PMAT[s]         / (CU[s] * Y[s])
+
+CEE[s] := 0
+
+verif_phi_input[s] := 1 - phi_K[s] - phi_L[s] - phi_E[s] - phi_MAT[s]
+
+BUIL[h] := HOUSEHOLD_HYBRID_BUIL(16, $h) *REAL_GDP_INDEX_DGT
+
+BUIL := sum(BUIL[h] on h)
+
+ER_BUIL := BUIL	
+
+INV_road := 0

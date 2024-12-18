@@ -1,12 +1,12 @@
 ###################################################################
-########## uniquement pour faire cahier de variantes ##############
+########## uniquement pour faire le cahier de variantes ##############
 ######### (simulation des chocs DGT avec codes de l'Ademe) ########
 ###################################################################
 
 
 #### Modification pour tableaux de sorties ####
 MAT = sum (MAT[s] if MAT[s]<>0 on s)
-PMAT = sum (PMAT[s]*MAT[s] if MAT[s]<>0 on s)
+PMAT*MAT = sum (PMAT[s]*MAT[s] if MAT[s]<>0 on s)
 
 # calcul salaire superbrut agrege
 w_s_spb  =  sum(W_S[s]*(1 + TCSE[s])*L_S[s]/L_s on s)
@@ -21,20 +21,42 @@ CL_bis  * L  = ( CL_S_bis  * L_S  + CL_SE_bis  * L_SE )
 
 # ajout des intérêts au stock de dette des ménages (uniquement pour affichage, cahier de variantes)
 # pour le GOV ils sont inclus dans le deficit qui est utilise pour calculer la dette
-DEBT_REHAB_Val_tot[h,ecl] =  DEBT_REHAB_Val[h,ecl] + DEBT_REHAB_Val[h,ecl]{-1}*R_I_REHAB[h,ecl]{-1} 
-DEBT_NewB_Val_tot[h,ecl] = DEBT_NewB_Val[h,ecl] + DEBT_NewB_Val[h,ecl]{-1}*R_I_NewBUIL[h,ecl]{-1}  
-DEBT_AUTO_Val_tot[h,ecl] = DEBT_AUTO_Val[h,ecl] + DEBT_AUTO_Val[h,ecl]{-1}*R_I_AUTO[h,ecl]{-1}  
+# pas d'accumulation des intérêts passés dans la dette pcq ils sont déduits déjà de EXP?
 
+DEBT_REHAB_Val_tot[h,ecl] = (@year > %baseyear) * ( ( 1 - R_RMBS_REHAB[h,ecl] ) * DEBT_REHAB_Val[h,ecl]{-1} +  DEBT_REHAB_Val_tot[h,ecl]{-1}*R_I_REHAB[h,ecl]{-1} + R_LOAN_REHAB[h,ecl] * PREHAB[h,ecl] * REHAB[h,ecl] )+ (@year =< %baseyear) * DEBT_REHAB_Val[h,ecl]{-1} * ( 1 + STEADYSTATE(1,1) )
+					
+DEBT_NewB_Val_tot[h,ecl] = (@year > %baseyear) * ( ( 1 - R_RMBS_NewBUIL[h,ecl] ) * DEBT_NewB_Val[h,ecl]{-1} + DEBT_NewB_Val_tot[h,ecl]{-1}*R_I_NewBUIL[h,ecl]{-1}  + R_LOAN_NewBUIL[h,ecl] * PNewBUIL[h,ecl] * NewBUIL[h,ecl] ) + (@year =< %baseyear) * DEBT_NewB_Val[h,ecl]{-1} * ( 1 + STEADYSTATE(1,1) )
+
+DEBT_AUTO_Val_tot[h,ecl] = (@year > %baseyear)*( DEBT_auto_Val[h,ecl]{-1}*(1 - R_RMBS_AUTO[h,ecl]) + DEBT_AUTO_Val_tot[h,ecl]{-1}*R_I_AUTO[h,ecl]{-1} + R_LOAN_AUTO[h,ecl]*PNewAuto[h,ecl]*NewAuto[h,ecl]*(1 - R_SUB_AUTO[h,ecl]) ) + (@year <= %baseyear)*(DEBT_auto_Val[h,ecl]{-1}*(1 + STEADYSTATE(1,1)))
+
+						  
+DEBT_REHAB_Val_tot2[h,ecl] =  DEBT_REHAB_Val[h,ecl] + DEBT_REHAB_Val[h,ecl]{-1}*R_I_REHAB[h,ecl]{-1} 
+DEBT_NewB_Val_tot2[h,ecl] = DEBT_NewB_Val[h,ecl] + DEBT_NewB_Val[h,ecl]{-1}*R_I_NewBUIL[h,ecl]{-1}  
+DEBT_AUTO_Val_tot2[h,ecl] = DEBT_AUTO_Val[h,ecl] + DEBT_AUTO_Val[h,ecl]{-1}*R_I_AUTO[h,ecl]{-1}  
+
+# Calcul de l'endettement des SNF
+@over d(R_G) = 1/8 * d(R) + (1 - 1/8) * d(R_G{-1})
+
+DEBT_SNF_VAL[s] = (1+R_SNF[s]{-1}) * DEBT_SNF_VAL[s]{-1} + PIA[s]*IA[s]
+R_SNF[s] = 1/4 * d(R[s]) + (1 - 1/4) * R_SNF[s]{-1}
+
+DEBT_SNF_VAL=sum(DEBT_SNF_VAL[s] on s)
+
+DEBT_SNF_ENER = sum(DEBT_SNF_VAL[se] on se)
 
 #### AJOUTS CHOCS DGT POUR CAHIER DE VARIANTES####
 
  @over PROG_K[s] = PROG_K[s]{-1} * (1 + GR_PROG_K[s] + CHOC_K + CHOC_PGF)
  @over PROG_L[s] = PROG_L[s]{-1} * (1 + GR_PROG_L[s] + CHOC_L + CHOC_PGF)
  @over PROG_E[s] = PROG_E[s]{-1} * (1 + GR_PROG_E[s] + CHOC_E + CHOC_PGF) 
- 
+ @over PROG_L = (sum(PROG_L[s] * L[s] on s))/L
+
  @over Prog_L_03 = (@year<=2022) * (1 + GR_Prog_L_03 + CHOC_L + CHOC_PGF) * Prog_L_03{-1} + _
               (@year>2022) * ( Prog_L_03{-1} * (1 + dlog(Prog_L_VP) + GR_Prog_L_03 + CHOC_L + CHOC_PGF))
  
  @over PROG_K_03  = (@year<=2022) * PROG_K_03{-1}  * ( 1  + GR_PROG_K_03 + CHOC_K + CHOC_PGF) + _
             (@year>2022) * ( Prog_K_03{-1} * (1 + dlog(Prog_K_VP) + GR_Prog_K_03 + CHOC_K + CHOC_PGF))
  
+ #ajout d'un choc de taux d'interet.
+@over R  = 1 * R_n  + ( 1  - 1 )  * ( R(- 1)  + d(R_e) ) + R_exo
+

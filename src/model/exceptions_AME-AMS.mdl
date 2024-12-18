@@ -542,10 +542,10 @@ CSPE[se24]= (CU[se24]-CU_2401)*Y[se24]
 CSPE = CSPE_2305 + CSPE_2306
 
 #----------------- On suppose que le ferroviaire n'augmente pas ses prix sous l'effet de la hausse de la demande induite par le développement du reseau
+# erreur le secteur ferroviaire est le secteur 14
+#@over TMD_n_15 = @elem(TMD_n_15, %baseyear)
 
-@over TMD_n_15 = @elem(TMD_n_15, %baseyear)
-
-@over dlog(PY_n_15)  = dlog(NCU_n_15)  
+#@over dlog(PY_n_15)  = dlog(NCU_n_15)  
 
 #-------------------- introduction du gaz dans les transports collectifs
 
@@ -1274,7 +1274,7 @@ PNew_Trucks[ce,road] = PNew_Trucks_cst[ce,road]*PMAT_03[road]
 
 @over PNewBUIL[h,ecl]  = PNewBUIL_cst[h,ecl] * PCH[13] 
 
-##################recalge investissement ferroviaire
+##################recalage investissement ferroviaire
 
 @over dlog(IA_n_14)  = ( @year <= 2019 )  * ( ( IAexo_14 > 0 )  * ( dlog(IAexo_14) ) )  + ( @year > 2019 )  * ( ADJUST(1 , 1)  * dlog(IA_14{-1})  + _
                     ADJUST(1 , 2)  * dlog(Y_e_14)  + 1  * ( log(K_n_14{-1})  - log(K_14{-1}) )  + ADJUST(1 , 4)  * d(SUBST_K_14)  + IMP_BUD_14  * GDP{-1}  / IA_14{-1} )
@@ -1287,3 +1287,10 @@ PNew_Trucks[ce,road] = PNew_Trucks_cst[ce,road]*PMAT_03[road]
 
 @over d(log(K_n_14))  = ( @year <= 2019 )  * ( K_n_14 > 0 )  * ( dlog(K_14) )  + ( @year > 2019 )  * ( dlog(Y_14)  + _
                          0*d(SUBST_K_14)  - dlog(PROG_K_14)  + Choc_CSC_14 + IMP_BUD_14  * GDP{-1}  / IA_14{-1}) 
+                         
+                         
+################## Correction bug 2026   NA generated for KM_AUTO_ELEC_H01_CF - Log of non positive number                      
+# le terme phi_elec_H01_CF est négatif en 2026  alors qu'il est égal à  =  phi_elec_e_H01_CF  / phi_elec_n_tot_H01 qui sont deux termes positifs. Pour renforcer la robustesse du modèle on écrit 
+
+@over phi_elec_H01_CF * phi_elec_n_tot_H01 =  phi_elec_e_H01_CF  
+@over phi_elec_e_H01_CF  = ( phi_elec_n_H01_CF > 0 )  * phi_elec_n_H01_CF  + ( phi_elec_n_H01_CF <= 0 )  * 0.001

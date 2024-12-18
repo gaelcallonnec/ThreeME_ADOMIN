@@ -24,11 +24,19 @@ subroutine run(string %data_calibration, string %data_shock)
     model {%modelname}
     ' Load calibration data from the Excel file
     call load_calibration
+	
+	logmsg ******* DATA LOADED *********
 
     ' Export all variables to a csv file (used by the external compiler)
     call export_all_to_csv
+	logmsg ******* EXPORT DONE *********
 
-    {%modelname}.series round0 round1 round2 demography government household ghg carbon_tax prices exceptions_tracker 
+    if %exceptions_DGT = "yes" then
+	  call load_baseline_realist
+	  {%modelname}.series round0_dgt round1_dgt round2_dgt demography government_dgt household_dgt ghg carbon_tax prices_dgt exceptions_tracker
+	else
+      {%modelname}.series round0 round1 round2 demography government household ghg carbon_tax prices exceptions_tracker
+	endif
     call export_all_to_csv
 
 ' Stop here to create/save a workfile where data are already initialized (with option %load = "new"). Then choose the option %load = ""
@@ -43,11 +51,19 @@ subroutine run(string %data_calibration, string %data_shock)
 
     if %ModelVersion = "hybrid"  then
        call load_calibration_hybrid
-       {%modelname}.series    hybrid_round1   
+    if %exceptions_DGT = "yes" then
+	  {%modelname}.series    hybrid_round1_dgt 
+	else 
+	  {%modelname}.series    hybrid_round1
+	endif
        call export_all_to_csv
 
 	if %exceptions_DGT = "yes" then
-       {%modelname}.series exceptions_hybrid_data exceptions_data_AME-AMS Exceptions_DGT_data     
+	    if %exceptions_PAC = "no" then
+       {%modelname}.series exceptions_hybrid_data exceptions_data_AME-AMS  Exceptions_DGT_data Fonds_chaleur_data
+	    else
+       {%modelname}.series exceptions_hybrid_data exceptions_data_AME-AMS  Exceptions_DGT_data  Exceptions_PAC_data Fonds_chaleur_data
+		endif
 	 else
        {%modelname}.series exceptions_hybrid_data exceptions_data_AME-AMS Exceptions_Variantes_data
 	 endif     
@@ -57,9 +73,17 @@ subroutine run(string %data_calibration, string %data_shock)
        ' Load the model specification from the model/ folder
 
 	if %exceptions_DGT = "yes" then
-      {%modelname}.load blocks hybrid_new exceptions_AME-AMS  Exceptions_DGT
+	  	if %exceptions_PAC = "no" then 
+      		if %exceptions_VAC = "yes" then
+				{%modelname}.load blocks hybrid_new exceptions_AME-AMS Exceptions_dgt  exceptions_dgt_VAC
+	  		else
+				{%modelname}.load blocks hybrid_new exceptions_AME-AMS Exceptions_dgt Fonds_chaleur
+			endif
+		else
+{%modelname}.load blocks hybrid_new exceptions_AME-AMS Exceptions_dgt  Exceptions_PAC
+	  endif
 	else
-      {%modelname}.load blocks hybrid_new exceptions_AME-AMS  Exceptions_Variantes
+      {%modelname}.load blocks hybrid_new exceptions_AME-AMS Exceptions_Variantes
 	 endif   
 
     endif
@@ -70,19 +94,22 @@ subroutine run(string %data_calibration, string %data_shock)
 
     endif
 	
-	'gelstring varendo = "CK_* MAT_* PMAT_* SUBST_*_n* R_DIR Ibis_bis_* K_n_* IA_n_* K_NE_n_19_* K_E_n_19_* IA_n_20_* Ibis_20_* K_NE_n_20_* PM_*  YQS_SM* PYQ_SM* MATM_* GRMATM_* MATD_* CHM_* CHD_* GRCHM_* GM_* GD_* GRGM_* GD_* IAM_* GRIAM_* IAD_* IAM_* EM_* GREM_* TMD_n* Y_e_* E_* MAT_* L_* SD_e_* SM_e_* PARTR_e_* R_e PY_* PY_e_* EXP_e_* SUBST_L_* SUBST_E_* SUBST_K_* SUBST_MAT_* SUBST_CHD_* SUBST_CHM_* SUBST_GD_* SUBST_GM_* SUBST_X_* SUBST_XD_* SUBST_XM_* P_e PY_n_* Ibis_* IA_n_* K_n_* W_s_*"
-'gel
-'gel'"PM_* YQS_SM PYQS_SM MATM_* GRMATM_* MATD_* CHM_* CHD_* GRCHM_* GM_* GD_* GRGM_* GD_* IAM_* GRIAM_* IAD_* IAM_* EM_* GREM_* ED_* PXD_n_* PXD_* R_DIR* MAT_* PMAT_* W_S_0* W_S_1* W_S_2* TMD_n*  W_S_n_0* W_S_n_1* W_S_n_2* GRPM_* IA_n_*"
-'gel''j'ai mis W_S_0*, W_S_1* et W_S_2* et non W_S_* pour éviter d'inclure les variables W_S_n_* qui ne sont pas concernées par nos modifications	
-'gel''X_* XD_*
-'gel''BetaExp_20_h01 PEXP_CES_H01
-'gel'
-	'gelif %exceptions_DGT = "yes" then
-	'gelstring list = a_3me.@stochastic
-	'gellist = @wkeep(list,varendo)
-	'gel{%modelname}.addassign(v=c) {list}
-	'gel{%modelname}.addinit(v=n) {list}
-    'gelendif
+	'string varendo = "CH_* CHD_* CHM_* CI_* CK_* CL_* CU_* CUR* DS_* DSD_* DSM_* E_* ED_* EM_* ENER_0* ENER_1* ENER_2* EXP_* EXPG_* G_* GD_* GM_* GDP_* I_* IA_* IAD_* IAM_* K_* L_* M_* MARKUP_* MAT_* MATD_* MATM_* MC_* MCD_* MCM_* MS_* MT_* MTD_* MTM_* NCU_* OTHT_* OTHTD_* OTHTM_* PARTR_* PCH_* PCHD_* PCHM_* PCID_* PCIM_* PE_* PED_* PEM_* PENER_* PEXP_* PEXPG_* PGD_* PGDP_* PI_* PIA_* PIAD_* PIAM_* PID_* PIM_* PIS_* PIY_* PK_* PM_* PMAT_* PMATD_* PMATM_* PMCD_* PMCM_* PMS_* PMT_* PMTD_* PMTM_* PNEXP_* POTHT_* POTHTD_* POTHTM_* PQ_* PQD_* PQM_* PRF_* PSUB_* PSY_* PTAX_* PVA_* PVAT_* PVATD_* PVATM_* PX_* PXD_* PXM_* PY_* PYQ_* PYQS_* Q_* QD_* QM_* R_* RF_* RK_* SD_* SM_* SUBST_* SY_* TMD_* VA_* VAT_* VATD_* VATM_* W_* X_* XD_* XM_* Y_* YCAP_* YOPT_* YQ_* YQBIS_* YQS_* "
+	'string varendo = "CK_* MAT_* PMAT_* SUBST_* R* Ibis_bis_* K_* IA_* K_NE_n_19_* K_E_n_19_* IA_n_20_* Ibis_20_* K_NE_n_20_* PM_*  YQS_SM* PYQ_SM* MATM_* MATD_* CHM_* CHD_* GM_* GD_* IAM_* IAD_* EM_* ED_* TMD_n* Y_e_* E_* MAT_* L_* SD_e_* SM_e_* PARTR_e_* R_e PY_* PY_e_* EXP_e_* SUBST_L_* SUBST_E_* SUBST_K_* SUBST_MAT_* SUBST_CHD_* SUBST_CHM_* SUBST_GD_* SUBST_GM_* SUBST_X_* SUBST_XD_* SUBST_XM_* P_e PY_n_* Ibis_* IA_n_* K_n_* W_* P_* Y_* VA_* "
+	'string varendo = "CK_* MAT_* PMAT_* SUBST_*_n* R_DIR Ibis_bis_* K_n_* IA_n_* K_NE_n_19_* K_E_n_19_* IA_n_20_* Ibis_20_* K_NE_n_20_* PM_*  YQS_SM* PYQ_SM* MATM_* MATD_* CHM_* CHD_* GM_* GD_* IAM_* IAD_* EM_* ED_* TMD_n* Y_e_* E_* MAT_* L_* SD_e_* SM_e_* PARTR_e_* R_e PY_* PY_e_* EXP_e_* SUBST_L_* SUBST_E_* SUBST_K_* SUBST_MAT_* SUBST_CHD_* SUBST_CHM_* SUBST_GD_* SUBST_GM_* SUBST_X_* SUBST_XD_* SUBST_XM_* P_e PY_n_* Ibis_* IA_n_* K_n_* W_*"
+	'string varendo = "CK_* MATM_* CHM_* GM_* IAM_* EM_* PM_n* SUBST_*_n* R_DIR Ibis_bis_* K_n_* IA_n_* K_NE_n_19_* K_E_n_19_* IA_n_20_* Ibis_20_* K_NE_n_20_* YQS_SM* PYQ_SM* TMD_n* Y_e_* PY_* PY_e_* EXP_e_* SUBST_L_* SUBST_E_* SUBST_K_* SUBST_MAT_* SUBST_CHD_* SUBST_CHM_* SUBST_GD_* SUBST_GM_* SUBST_X_* SUBST_XD_* SUBST_XM_* P_e PY_n_* Ibis_* IA_n_* K_n_* W_*"
+
+'"PM_* YQS_SM PYQS_SM MATM_* GRMATM_* MATD_* CHM_* CHD_* GRCHM_* GM_* GD_* GRGM_* GD_* IAM_* GRIAM_* IAD_* IAM_* EM_* GREM_* ED_* PXD_n_* PXD_* R_DIR* MAT_* PMAT_* W_S_0* W_S_1* W_S_2* TMD_n*  W_S_n_0* W_S_n_1* W_S_n_2* GRPM_* IA_n_* IAM_n*"
+''j'ai mis W_S_0*, W_S_1* et W_S_2* et non W_S_* pour éviter d'inclure les variables W_S_n_* qui ne sont pas concernées par nos modifications	
+''X_* XD_*
+''BetaExp_20_h01 PEXP_CES_H01
+'
+	'if %exceptions_DGT = "yes" then
+	'string list = a_3me.@stochastic
+	'list = @wkeep(list,varendo)
+	'{%modelname}.addassign(i) {list}
+	'{%modelname}.addinit(v=n) {list}
+    'endif
 	
     wfsave {%wfname}
 
@@ -113,8 +140,15 @@ subroutine run(string %data_calibration, string %data_shock)
 
         wfopen {%wfname}
 
-        ' Run the baseline scenario
-        call run_scenario("baseline")
+        ' Run the baseline scenario to initialize add factors
+        if %exceptions_DGT = "yes" then
+		  call run_scenario("baseline_dgt")
+		  call run_scenario("AME_SCEN_AMS2")
+		else 
+		  ' Run the baseline scenario (AME)
+		  call run_scenario("baseline")
+		endif
+		
 
         ' Run scenario
         call run_scenario(%DS)
@@ -163,15 +197,101 @@ endsub
 ' Pass in "baseline" as the %scenario_name for the baseline scenario
 subroutine run_scenario(string %scenario_name)
 
-  if %scenario_name = "baseline" then
-    ' Load a realistic reference scenario if requested
+	string varendo = "CK_* MATM_DES_N* CHM_DES_N* GM_DES_N* IAM_DES_N* IAM_DES_N_19_19 EM_DES_N* PM_N* IA_N_DES* I_MDE_19 I_MDE_20 TMD_N* W_S_DES_N* W_S_DGT* PY_DES* L_DES* EXP_DES* PRESOC_DOM_U_TETE_DES PRESOC_DOM_OTH_VAL_DES X_DES* MAT_n_12_13  P_PAC  CUR_BIS*" 'IA_NOTIONNEL_NOSHOCK*
+	'string varendo = "CH_* CHD_* CHM_* CI_* CK_* CL_* CU_* CUR* DS_* DSD_* DSM_* E_* ED_* EM_* ENER_0* ENER_1* ENER_2* EXP_* EXPG_* G_* GD_* GM_* GDP_* I_* IA_* IAD_* IAM_* K_* L_* M_* MARKUP_* MAT_* MATD_* MATM_* MC_* MCD_* MCM_* MS_* MT_* MTD_* MTM_* NCU_* OTHT_* OTHTD_* OTHTM_* PARTR_* PCH_* PCHD_* PCHM_* PCID_* PCIM_* PE_* PED_* PEM_* PENER_* PEXP_* PEXPG_* PGD_* PGDP_* PI_* PIA_* PIAD_* PIAM_* PID_* PIM_* PIS_* PIY_* PK_* PM_* PMAT_* PMATD_* PMATM_* PMCD_* PMCM_* PMS_* PMT_* PMTD_* PMTM_* PNEXP_* POTHT_* POTHTD_* POTHTM_* PQ_* PQD_* PQM_* PRF_* PSUB_* PSY_* PTAX_* PVA_* PVAT_* PVATD_* PVATM_* PX_* PXD_* PXM_* PY_* PYQ_* PYQS_* Q_* QD_* QM_* RF_* RK_* SD_* SM_* SUBST_* SY_* TCO_* TMD_* VA_* VAT_* VATD_* VATM_* W_* X_* XD_* XM_* Y_* YCAP_* YOPT_* YQ_* YQBIS_* YQS_* "
+	if %exceptions_DGT = "yes" then
+		string list = a_3me.@stochastic
+		list = @wkeep(list,varendo)
+	endif	
+
+  if %scenario_name = "baseline_dgt" then
+    '{%modelname}.scenario(n, a=0) {%scenario_name}
+	
+	' Load a realistic reference scenario if requested
+    if %ref="realist" then
+      call load_realist_dgt
+    endif
+	
+	if %exceptions_DGT = "yes" then
+		{%modelname}.addassign(v=i) {list}
+		{%modelname}.exclude {list}
+    endif
+	
+	call solvemodel(%solveopt)
+	logmsg ********* CALAGE DU BASELINE ********
+	
+	if %exceptions_DGT = "yes" then
+		{%modelname}.addassign(v=i) {list}
+		{%modelname}.addinit(v=a,s=b) {list}
+
+		{%modelname}.reinclude {list}  
+	endif
+
+    call solvemodel(%solveopt)
+	logmsg ********* BASELINE CALE ********
+
+  else 
+  
+  if %scenario_name = "AME_SCEN_AMS2" then
+    
+	{%modelname}.scenario(n, a=1) {%scenario_name}
+	
+	' Load a realistic reference scenario if requested
     if %ref="realist" then
       call load_realist
     endif
 
     call solvemodel(%solveopt)
 
-    group reporting_verif VERIF_GDP_GDPBIS_0 VERIF_GDP_GDPTER_0  VERIF_PGDP_PGDPBIS_0 VERIF_GDPBIS_GDPTER_0 VERIF_GDPTER_GDPBIS_0  VERIF_PGDP_PGDPTER_0 VERIF_ValGDP_ValGDPTER_0 _
+ group reporting_verif VERIF_GDP_GDPBIS_1 VERIF_GDP_GDPTER_1  VERIF_PGDP_PGDPBIS_1 VERIF_GDPBIS_GDPTER_1 VERIF_GDPTER_GDPBIS_1  VERIF_PGDP_PGDPTER_1 VERIF_ValGDP_ValGDPTER_1 _
+    verif_CH_1 Verif_G_1 Verif_I_1 verif_X_1 verif_DS_1 verif_M_1
+    reporting_verif.sheet(t)
+    show reporting_verif
+            
+ group Reporting ER_oil_1 ER_oil_2201_1 ER_Oil_2202_1 ER_elec_2301_1 ER_elec_2302_1 ER_elec_2303_1 ER_elec_2304_1 ER_elec_2305_1 ER_elec_2306_1 ER_elec_2307_1 ER_elec_2308_1 _
+    ER_elec_1 ER_gas_1 ER_gas_2401_1 ER_gas_2402_1 ER_gas_2403_1 ER_gas_2404_1 ER_gas_2405_1 ER_gas_2406_1 ER_coal_1 ER_Total_1 _
+    ER_Agriculture_1 ER_Indus_1 ER_Residential_1 ER_Tertiary_1 ER_Trans_Private_1 ER_Trans_Public_1  _ 
+    ER_Auto_1 ER_AUTO_th_A_1 ER_AUTO_th_B_1 ER_AUTO_th_C_1 ER_AUTO_th_D_1 ER_AUTO_th_E_1 ER_AUTO_th_F_1 ER_AUTO_th_G_1 _
+    ER_AUTO_elec_A_1 ER_AUTO_elec_B_1 ER_AUTO_elec_C_1 ER_AUTO_elec_D_1 ER_AUTO_elec_E_1 ER_AUTO_elec_F_1 ER_AUTO_elec_G_1 ER_Auto_Coal_1 ER_auto_th_1 ER_Auto_Elec_1 ER_Auto_Gas_1 _
+    ER_NEWAUTO_1 ER_NEWAUTO_th_1 ER_newauto_th_A_1 ER_newauto_th_B_1 ER_newauto_th_C_1 ER_newauto_th_D_1 ER_newauto_th_E_1 ER_newauto_th_F_1 ER_newauto_th_G_1 _ 
+    ER_NEWAUTO_elec_1 ER_NEWAUTO_elec_A_1 ER_NEWAUTO_elec_B_1 ER_NEWAUTO_elec_C_1 ER_NEWAUTO_elec_D_1 ER_NEWAUTO_elec_E_1 ER_NEWAUTO_elec_F_1 ER_NEWAUTO_elec_G_1 _ 
+    ER_Agriculture_coal_1 ER_Indus_coal_1 ER_Residential_coal_1 ER_Tertiary_coal_1 ER_Trans_Private_coal_1 ER_Trans_Public_coal_1 ER_Agriculture_oil_1 ER_Indus_oil_1 ER_Residential_oil_1 ER_Tertiary_oil_1 ER_Trans_Private_oil_1 ER_Trans_Public_oil_1 _
+    ER_Agriculture_elec_1 ER_Indus_elec_1 ER_Residential_elec_1 ER_Tertiary_elec_1 ER_Trans_Private_elec_1 ER_Trans_Public_elec_1 _  
+    ER_Agriculture_gas_1 ER_Indus_gas_1 ER_Residential_gas_1 ER_Tertiary_gas_1 ER_Trans_Private_gas_1 ER_Trans_Public_gas_1 _
+    ER_buil_1 ER_buil_A_1 ER_buil_B_1 ER_buil_C_1 ER_buil_D_1 ER_buil_E_1 ER_buil_F_1 ER_buil_G_1 _
+    EMS_DC_04_1	EMS_DC_05_1	EMS_DC_1	EMS_HH_1	EMS_HH_21_1	EMS_HH_21_H01_1	EMS_HH_22_1	EMS_HH_22_H01_1	EMS_HH_24_1	EMS_HH_24_H01_1	EMS_SEC_TOT_01_1 _
+    EMS_SEC_TOT_02_1	EMS_SEC_TOT_03_1	EMS_SEC_TOT_04_1	EMS_SEC_TOT_05_1	EMS_SEC_TOT_06_1	EMS_SEC_TOT_07_1	EMS_SEC_TOT_08_1	EMS_SEC_TOT_09_1	EMS_SEC_TOT_10_1	EMS_SEC_TOT_11_1	EMS_SEC_TOT_12_1	EMS_SEC_TOT_13_1	EMS_SEC_TOT_14_1 _
+    EMS_SEC_TOT_15_1	EMS_SEC_TOT_16_1	EMS_SEC_TOT_17_1	EMS_SEC_TOT_18_1	EMS_SEC_TOT_19_1	EMS_SEC_TOT_1	EMS_SEC_TOT_20_1	EMS_SEC_TOT_21_05_1	EMS_SEC_TOT_21_06_1	EMS_SEC_TOT_21_07_1	EMS_SEC_TOT_21_08_1 _
+    EMS_SEC_TOT_21_10_1	EMS_SEC_TOT_21_12_1	EMS_SEC_TOT_21_19_1	EMS_SEC_TOT_21_20_1	EMS_SEC_TOT_21_2304_1	EMS_SEC_TOT_2201_1	EMS_SEC_TOT_22_01_1	EMS_SEC_TOT_22_02_1	EMS_SEC_TOT_22_03_1 _
+    EMS_SEC_TOT_22_04_1	EMS_SEC_TOT_22_05_1	EMS_SEC_TOT_22_06_1	EMS_SEC_TOT_22_07_1	EMS_SEC_TOT_22_08_1	EMS_SEC_TOT_22_09_1	EMS_SEC_TOT_22_12_1	EMS_SEC_TOT_22_13_1	EMS_SEC_TOT_22_14_1 _
+    EMS_SEC_TOT_22_15_1	EMS_SEC_TOT_22_16_1	EMS_SEC_TOT_22_17_1	EMS_SEC_TOT_22_18_1	EMS_SEC_TOT_22_19_1	EMS_SEC_TOT_22_20_1	EMS_SEC_TOT_22_2201_1	EMS_SEC_TOT_22_2302_1	EMS_SEC_TOT_2302_1 _
+    EMS_SEC_TOT_2303_1	EMS_SEC_TOT_2304_1	EMS_SEC_TOT_2401_1	EMS_SEC_TOT_24_01_1	EMS_SEC_TOT_24_02_1	EMS_SEC_TOT_24_03_1	EMS_SEC_TOT_24_04_1	EMS_SEC_TOT_24_05_1	EMS_SEC_TOT_24_06_1 _
+    EMS_SEC_TOT_24_07_1	EMS_SEC_TOT_24_08_1	EMS_SEC_TOT_24_09_1	EMS_SEC_TOT_24_10_1	EMS_SEC_TOT_24_11_1	EMS_SEC_TOT_24_12_1	EMS_SEC_TOT_24_13_1 _
+    EMS_SEC_TOT_24_14_1	EMS_SEC_TOT_24_15_1	EMS_SEC_TOT_24_16_1	EMS_SEC_TOT_24_17_1	EMS_SEC_TOT_24_18_1	EMS_SEC_TOT_24_19_1	EMS_SEC_TOT_24_20_1 _
+    EMS_SEC_TOT_24_2201_1	 EMS_SEC_TOT_24_2303_1	 EMS_SEC_TOT_24_2401_1	 EMS_SECSOU_1	EMS_SECSOU_21_1	EMS_SECSOU_22_1	EMS_SECSOU_24_1	EMS_SOU_1	EMS_SOU_21_1	EMS_SOU_22_1	EMS_SOU_24_1	EMS_TOT_1 _
+    Q_MTEP_EP_1 Q_MTEP_EP_21_1 Q_MTEP_EP_21_21_1 Q_MTEP_EP_2201_1 Q_MTEP_EP_2202_1 Q_MTEP_EP_22_2201_1 Q_MTEP_EP_22_2202_1 Q_MTEP_EP_2301_1 _
+    Q_MTEP_EP_2302_1 Q_MTEP_EP_2303_1 Q_MTEP_EP_2304_1 Q_MTEP_EP_2305_1 Q_MTEP_EP_2306_1 Q_MTEP_EP_2307_1 Q_MTEP_EP_2308_1 Q_MTEP_EP_23_2301_1 _
+    Q_MTEP_EP_23_2302_1 Q_MTEP_EP_23_2303_1 Q_MTEP_EP_23_2304_1 Q_MTEP_EP_23_2305_1 Q_MTEP_EP_23_2306_1 Q_MTEP_EP_23_2307_1 Q_MTEP_EP_23_2308_1 _
+    Q_MTEP_EP_2401_1 Q_MTEP_EP_2402_1 Q_MTEP_EP_2403_1 Q_MTEP_EP_2404_1 Q_MTEP_EP_2405_1 Q_MTEP_EP_2406_1 Q_MTEP_EP_24_2401_1 Q_MTEP_EP_24_2402_1 _
+    Q_MTEP_EP_24_2403_1 Q_MTEP_EP_24_2404_1 Q_MTEP_EP_24_2405_1 Q_MTEP_EP_24_2406_1 Q_MTEP_INDUS_21_1 Q_MTEP_INDUS_22_1 Q_MTEP_INDUS_23_1 Q_MTEP_INDUS_24_1 _
+    PHIY_EF_TOT_22_2201_1 PHIY_EF_TOT_22_2202_1 PHIY_EF_TOT_23_2301_1 PHIY_EF_TOT_23_2302_1 PHIY_EF_TOT_23_2303_1 PHIY_EF_TOT_23_2304_1 PHIY_EF_TOT_23_2305_1 _
+    PHIY_EF_TOT_23_2306_1 PHIY_EF_TOT_23_2307_1 PHIY_EF_TOT_23_2308_1 PHIY_EF_TOT_24_2401_1 PHIY_EF_TOT_24_2402_1 PHIY_EF_TOT_24_2403_1 PHIY_EF_TOT_24_2404_1 _
+    PHIY_EF_TOT_24_2405_1 PHIY_EF_TOT_24_2406_1 IC_HH_22_h01_1 IC_HH_24_h01_0
+  Reporting.sheet(t)
+  show Reporting
+
+
+  else
+  
+   if %scenario_name = "baseline" then
+    ' Load a realistic reference scenario if requested
+    if %ref="realist" then
+      call load_realist
+    endif
+
+    call solvemodel(%solveopt)
+  
+ group reporting_verif VERIF_GDP_GDPBIS_0 VERIF_GDP_GDPTER_0  VERIF_PGDP_PGDPBIS_0 VERIF_GDPBIS_GDPTER_0 VERIF_GDPTER_GDPBIS_0  VERIF_PGDP_PGDPTER_0 VERIF_ValGDP_ValGDPTER_0 _
     verif_CH_0 Verif_G_0 Verif_I_0 verif_X_0 verif_DS_0 verif_M_0
     reporting_verif.sheet(t)
     show reporting_verif
@@ -207,8 +327,7 @@ subroutine run_scenario(string %scenario_name)
     PHIY_EF_TOT_24_2405_0 PHIY_EF_TOT_24_2406_0 IC_HH_22_h01_0 IC_HH_24_h01_0
   Reporting.sheet(t)
   show Reporting
-
-
+  
   else
 
     ' Create a new scenario that can be compared with the baseline
@@ -223,7 +342,407 @@ subroutine run_scenario(string %scenario_name)
 
    if %run_shock="yes" then
     
+	if %exceptions_DGT="yes" then 
+	
     group Reporting_2 ER_oil_2 ER_oil_2201_2 ER_Oil_2202_2 ER_elec_2301_2 ER_elec_2302_2 ER_elec_2303_2 ER_elec_2304_2 ER_elec_2305_2 ER_elec_2306_2 _
+    ER_elec_2307_2 ER_elec_2308_2 ER_elec_2 ER_gas_2 ER_gas_2401_2 ER_gas_2402_2 ER_gas_2403_2 ER_gas_2404_2 ER_gas_2405_2 ER_gas_2406_2 ER_coal_2 _ 
+    ER_Total_2 ER_Agriculture_2 ER_Indus_2 ER_Residential_2 ER_Tertiary_2 ER_Trans_Private_2 ER_Trans_Public_2  _
+    ER_Auto_2 ER_AUTO_th_A_2 ER_AUTO_th_B_2 ER_AUTO_th_C_2 ER_AUTO_th_D_2 ER_AUTO_th_E_2 ER_AUTO_th_F_2 ER_AUTO_th_G_2 ER_AUTO_elec_A_2 _
+    ER_AUTO_elec_B_2 ER_AUTO_elec_C_2 ER_AUTO_elec_D_2 ER_AUTO_elec_E_2 ER_AUTO_elec_F_2 ER_AUTO_elec_G_2 ER_Auto_Coal_2 ER_Auto_th_2 _ 
+    ER_Auto_Elec_2 ER_Auto_Gas_2 ER_NEWAUTO_2 ER_NEWAUTO_th_2 ER_newauto_th_A_2 ER_newauto_th_B_2 ER_newauto_th_C_2 ER_newauto_th_D_2 _
+    ER_newauto_th_E_2 ER_newauto_th_F_2 ER_newauto_th_G_2 ER_NEWAUTO_elec_2 ER_NEWAUTO_elec_A_2 ER_NEWAUTO_elec_B_2 ER_NEWAUTO_elec_C_2 _
+    ER_NEWAUTO_elec_D_2 ER_NEWAUTO_elec_E_2 ER_NEWAUTO_elec_F_2 ER_NEWAUTO_elec_G_2 ER_Agriculture_coal_2 ER_Indus_coal_2 ER_Residential_coal_2 _
+    ER_Tertiary_coal_2 ER_Trans_Private_coal_2 ER_Trans_Public_coal_2 ER_Agriculture_oil_2 ER_Indus_oil_2 _
+    ER_Residential_oil_2 ER_Tertiary_oil_2 ER_Trans_Private_oil_2 ER_Trans_Public_oil_2 ER_Agriculture_elec_2 ER_Indus_elec_2 _
+    ER_Residential_elec_2 ER_Tertiary_elec_2 ER_Trans_Private_elec_2 ER_Trans_Public_elec_2  ER_Agriculture_gas_2 ER_Indus_gas_2 _
+    ER_Residential_gas_2 ER_Tertiary_gas_2 ER_Trans_Private_gas_2 ER_Trans_Public_gas_2 ER_buil_2 ER_buil_A_2 ER_buil_B_2 ER_buil_C_2 _
+    ER_buil_D_2 ER_buil_E_2 ER_buil_F_2 ER_buil_G_2 TTCO_VOL_signal_2 TTCO_VOL_signal_1 PGDP_2 PGDP_1 (GDP_2/GDP_1-1)*100 _
+    (CH_2/CH_1-1)*100 (I_2/I_1-1)*100 (X_2/X_1-1)*100 (M_2/M_1-1)*100 (DC_val_2/(PGDP_2*GDP_2)-DC_val_1/(PGDP_1*GDP_1))*100 (UnR_TOT_2-UnR_TOT_1)*100 _
+    (L_2/L_1-1)*100 ((W_S_2/PCh_2)/(W_S_1/PCH_1)-1)*100 infl_FR_2-infl_FR_1 R_2-R_1 (DEBT_G_VAL_2/(PGDP_2*GDP_2)-DEBT_G_VAL_1/(PGDP_1*GDP_1))*100 _
+    (DP_G_VAL_2-DP_G_VAL_1)*100  EMS_TOT_2/@elem(EMS_TOT,%baseyear)*100 100*(GDP_2/GDP_1-1) 100*(CH_2/CH_1-1) 100*(I_2/I_1-1) 100*(X_2/X_1-1) 100*(M_2/M_1-1) _
+    100*(UNR_TOT_2-UNR_TOT_1)  100*(L_2/L_1-1) 100*((W_2/PCH_2)/(W_1/PCH_1)-1) 100*(PCH_2/PCH_1-1) 100*(R_2-R_1) 100*(Debt_g_val_2/(PGDP_2*GDP_2)-Debt_g_val_1/(PGDP_1*GDP_1)) _
+    100*(DP_G_val_2-DP_G_val_1) 100*(GDP_2/@ELEM(GDP_2,"2006")) 100*(EMS_TOT_2/EMS_TOT_1-1) 100*(EMS_TOT_2/@ELEM(EMS_TOT_2,"2006")) _
+    EMS_DC_04_2	EMS_DC_05_2	EMS_DC_2	EMS_HH_2	EMS_HH_21_2	EMS_HH_21_H01_2	EMS_HH_22_2	EMS_HH_22_H01_2	EMS_HH_24_2	EMS_HH_24_H01_2	EMS_SEC_TOT_01_2 _
+    EMS_SEC_TOT_02_2	EMS_SEC_TOT_03_2	EMS_SEC_TOT_04_2	EMS_SEC_TOT_05_2	EMS_SEC_TOT_06_2	EMS_SEC_TOT_07_2	EMS_SEC_TOT_08_2	EMS_SEC_TOT_09_2	EMS_SEC_TOT_10_2	EMS_SEC_TOT_11_2	EMS_SEC_TOT_12_2	EMS_SEC_TOT_13_2	EMS_SEC_TOT_14_2 _
+    EMS_SEC_TOT_15_2	EMS_SEC_TOT_16_2	EMS_SEC_TOT_17_2	EMS_SEC_TOT_18_2	EMS_SEC_TOT_19_2	EMS_SEC_TOT_2	EMS_SEC_TOT_20_2	EMS_SEC_TOT_21_05_2	EMS_SEC_TOT_21_06_2	EMS_SEC_TOT_21_07_2	EMS_SEC_TOT_21_08_2 _
+    EMS_SEC_TOT_21_10_2	EMS_SEC_TOT_21_12_2	EMS_SEC_TOT_21_19_2	EMS_SEC_TOT_21_20_2	EMS_SEC_TOT_21_2304_2	EMS_SEC_TOT_2201_2	EMS_SEC_TOT_22_01_2	EMS_SEC_TOT_22_02_2	EMS_SEC_TOT_22_03_2 _
+    EMS_SEC_TOT_22_04_2	EMS_SEC_TOT_22_05_2	EMS_SEC_TOT_22_06_2	EMS_SEC_TOT_22_07_2	EMS_SEC_TOT_22_08_2	EMS_SEC_TOT_22_09_2	EMS_SEC_TOT_22_12_2	EMS_SEC_TOT_22_13_2	EMS_SEC_TOT_22_14_2 _
+    EMS_SEC_TOT_22_15_2	EMS_SEC_TOT_22_16_2	EMS_SEC_TOT_22_17_2	EMS_SEC_TOT_22_18_2	EMS_SEC_TOT_22_19_2	EMS_SEC_TOT_22_20_2	EMS_SEC_TOT_22_2201_2	EMS_SEC_TOT_22_2302_2	EMS_SEC_TOT_2302_2 _
+    EMS_SEC_TOT_2303_2	EMS_SEC_TOT_2304_2	EMS_SEC_TOT_2401_2	EMS_SEC_TOT_24_01_2	EMS_SEC_TOT_24_02_2	EMS_SEC_TOT_24_03_2	EMS_SEC_TOT_24_04_2	EMS_SEC_TOT_24_05_2	EMS_SEC_TOT_24_06_2 _
+    EMS_SEC_TOT_24_07_2	EMS_SEC_TOT_24_08_2	EMS_SEC_TOT_24_09_2	EMS_SEC_TOT_24_10_2	EMS_SEC_TOT_24_11_2	EMS_SEC_TOT_24_12_2	EMS_SEC_TOT_24_13_2 _
+    EMS_SEC_TOT_24_14_2	EMS_SEC_TOT_24_15_2	EMS_SEC_TOT_24_16_2	EMS_SEC_TOT_24_17_2	EMS_SEC_TOT_24_18_2	EMS_SEC_TOT_24_19_2	EMS_SEC_TOT_24_20_2 _
+    EMS_SEC_TOT_24_2201_2	EMS_SEC_TOT_24_2303_2	EMS_SEC_TOT_24_2401_2	EMS_SECSOU_2	EMS_SECSOU_21_2	EMS_SECSOU_22_2	EMS_SECSOU_24_2	EMS_SOU_2	EMS_SOU_21_2	EMS_SOU_22_2	EMS_SOU_24_2	EMS_TOT_2 _ 
+    Q_MTEP_EP_2 Q_MTEP_EP_21_2 Q_MTEP_EP_21_21_2 Q_MTEP_EP_2201_2 Q_MTEP_EP_2202_2 Q_MTEP_EP_22_2201_2 Q_MTEP_EP_22_2202_2 Q_MTEP_EP_2301_2 _
+    Q_MTEP_EP_2302_2 Q_MTEP_EP_2303_2 Q_MTEP_EP_2304_2 Q_MTEP_EP_2305_2 Q_MTEP_EP_2306_2 Q_MTEP_EP_2307_2 Q_MTEP_EP_2308_2 Q_MTEP_EP_23_2301_2 _
+    Q_MTEP_EP_23_2302_2 Q_MTEP_EP_23_2303_2 Q_MTEP_EP_23_2304_2 Q_MTEP_EP_23_2305_2 Q_MTEP_EP_23_2306_2 Q_MTEP_EP_23_2307_2 Q_MTEP_EP_23_2308_2 _
+    Q_MTEP_EP_2401_2 Q_MTEP_EP_2402_2 Q_MTEP_EP_2403_2 Q_MTEP_EP_2404_2 Q_MTEP_EP_2405_2 Q_MTEP_EP_2406_2 Q_MTEP_EP_24_2401_2 Q_MTEP_EP_24_2402_2 _
+    Q_MTEP_EP_24_2403_2 Q_MTEP_EP_24_2404_2 Q_MTEP_EP_24_2405_2 Q_MTEP_EP_24_2406_2 Q_MTEP_INDUS_21_2 Q_MTEP_INDUS_22_2 Q_MTEP_INDUS_23_2 Q_MTEP_INDUS_24_2 _
+    PHIY_EF_TOT_22_2201_2 PHIY_EF_TOT_22_2202_2 PHIY_EF_TOT_23_2301_2 PHIY_EF_TOT_23_2302_2 PHIY_EF_TOT_23_2303_2 PHIY_EF_TOT_23_2304_2 PHIY_EF_TOT_23_2305_2 _
+    PHIY_EF_TOT_23_2306_2 PHIY_EF_TOT_23_2307_2 PHIY_EF_TOT_23_2308_2 PHIY_EF_TOT_24_2401_2 PHIY_EF_TOT_24_2402_2 PHIY_EF_TOT_24_2403_2 PHIY_EF_TOT_24_2404_2 _
+    PHIY_EF_TOT_24_2405_2 PHIY_EF_TOT_24_2406_2 IC_HH_22_h01_2 IC_HH_24_h01_2 _
+    KM_auto_H01_2 KM_TRAVELER_18_H01_2 KM_TRAV_AUTO_LD_H01_2 KM_TRAV_AUTO_CD_H01_2 KM_TRAVELER_14_H01_2 KM_TRAVELER_15_H01_2 KM_TRAVELER_CD_H01_2 KM_TRAVELER_LD_H01_2 _
+    KM_AUTO_H01_1 KM_TRAVELER_18_H01_1 KM_TRAV_AUTO_LD_H01_1 KM_TRAV_AUTO_CD_H01_1 KM_TRAVELER_14_H01_1 _
+    KM_TRAVELER_15_H01_1 KM_TRAVELER_CD_H01_1 KM_TRAVELER_LD_H01_1
+
+    
+
+  Reporting_2.sheet(t)
+  show Reporting_2
+  
+
+   group Reporting_3 100*(GDP_2/GDP_1-1) 100*((VA_2-VA_20_2)/(VA_1-VA_20_1)-1) 100*((CH_2-CH_1)/GDP_1) 100*((CH_03_2-CH_03_1)/GDP_1) _
+               100*((G_2-G_1)/GDP_1) 100*((I_2-I_1)/GDP_1) 100*((DS_2-DS_1)/GDP_1) 100*((X_2-X_1)/GDP_1)-100*((M_2-M_1)/GDP_1) _
+               100*((CH_2-CH_13_2-(CH_1-CH_13_1))/GDP_1) 100*((I_2+CH_13_2-(I_1+CH_13_1))/GDP_1) 100*((I_2-IA_20_2-(I_1-IA_20_1))/GDP_1) 100*((CH_13_2-CH_13_1)/GDP_1) 100*((IA_20_2-IA_20_1)/GDP_1) _
+               100*(CH_2/CH_1-1) 100*(CH_03_2/CH_03_1-1) 100*(G_2/G_1-1) 100*(I_2/I_1-1) 100*((I_2-IA_20_2)/(I_1-IA_20_1)-1) 100*(X_2/X_1-1) 100*(M_2/M_1-1) _
+              100*((CH_2-CH_13_2)/(CH_1-CH_13_1)-1) 100*((I_2+CH_13_2)/(I_1+CH_13_1)-1) 100*((CH_13_2)/(CH_13_1)-1) 100*((IA_20_2)/(IA_20_1)-1) _
+      100*(DISPINC_VAL_2/DISPINC_VAL_1-1) 100*(DISPINC_VAL_2/DISPINC_VAL_1*PCH_1/PCH_2-1) 100*(DISPINC_VAL_2/DISPINC_VAL_1*L_1/L_2-1) _
+      100*(DISPINC_VAL_2/DISPINC_VAL_1*L_1/L_2*PCH_1/PCH_2-1) 100*((dispinc_val_H01_2-(PCH_2*CH_2-pch_13_2*ch_13_2))/dispinc_val_H01_2-(dispinc_val_H01_1-(PCH_1*CH_1-pch_13_1*ch_13_1))/dispinc_val_H01_1) 100*(PCH_2/PCH_1-1) 100*(PY_2/PY_1-1) 100*(PX_2/PX_1-1) _
+      100*(PM_2/PM_1-1) 100*(W_2/W_1-1) 100*((W_2/PCH_2)/(W_1/PCH_1)-1) 100*(CL_2/CL_1-1) 100*((CL_2/PVA_2)/(CL_1/PVA_1)-1) ((L_2/L_1)-1)*100 _
+      L_2-L_1 100*(UNR_TOT_2-UNR_TOT_1) 100*(DC_VAL_2/(GDP_2*PGDP_2)-DC_VAL_1/(GDP_1*PGDP_1)) _
+      100*((M_21_2*PM_21_2-X_21_2*PX_21_2+M_22_2*PM_22_2-X_22_2*PX_22_2+M_23_2*PM_23_2-X_23_2*PX_23_2+M_24_2*PM_24_2-X_24_2*PX_24_2)/(GDP_2*PGDP_2))-100*((M_21_1*PM_21_1-X_21_1*PX_21_1+M_22_1*PM_22_1-X_22_1*PX_22_1+M_23_1*PM_23_1-X_23_1*PX_23_1+M_24_1*PM_24_1-X_24_1*PX_24_1)/(GDP_1*PGDP_1)) 100*((-SP_G_VAL_2)/(GDP_2*PGDP_2)-(-SP_G_VAL_1)/(GDP_1*PGDP_1)) _
+      100*((-BF_G_VAL_2)/(GDP_2*PGDP_2)-(-BF_G_VAL_1)/(GDP_1*PGDP_1)) (DEBT_G_VAL_2/(PGDP_2*GDP_2)-DEBT_G_VAL_1/(PGDP_1*GDP_1))*100 _ 
+DEP_val_2 REC_VAL_2 (0-BF_G_VAL_2) DEBT_G_VAL_2 REC_TCO_VAL_2 ENERT_22_2*PENERT_22_2 ENERT_24_2*PENERT_24_2 ENERT_23_2*PENERT_23_2 ENERT_21_2*PENERT_21_2 TCO_VAL_HH_2 _
+TCO_VAL_HH_21_H01_2+TCO_VAL_HH_24_H01_2+TCO_VAL_HH_22_H01_2*(Q_MTEP_H_BUIL_22_2)/(Q_MTEP_H_BUIL_22_2+Q_MTEP_H_AUTO_22_2) _
+TCO_VAL_HH_22_H01_2*(Q_MTEP_H_BUIL_22_2)/(Q_MTEP_H_BUIL_22_2+Q_MTEP_H_AUTO_22_2) TCO_VAL_HH_24_H01_2 TCO_VAL_HH_21_H01_2 _
+TCO_VAL_HH_22_H01_2*(Q_MTEP_H_AUTO_22_2)/(Q_MTEP_H_BUIL_22_2+Q_MTEP_H_AUTO_22_2) TCO_VAL_SEC_2 REC_TCO_VAL_ETS_2  _
+TCO_VAL_22_04_2+TCO_VAL_22_05_2+TCO_VAL_22_06_2+TCO_VAL_22_07_2+TCO_VAL_22_08_2+TCO_VAL_22_09_2+TCO_VAL_22_10_2+TCO_VAL_22_18_2+TCO_VAL_22_21_2+tco_val_22_2201_2+tco_val_22_2202_2+TCO_VAL_22_2301_2+TCO_VAL_22_2302_2+TCO_VAL_22_2303_2+TCO_VAL_22_2304_2+TCO_VAL_22_2305_2+TCO_VAL_22_2306_2+TCO_VAL_22_2307_2+TCO_VAL_22_2308_2+TCO_VAL_22_2401_2+TCO_VAL_22_2402_2+TCO_VAL_22_2403_2+TCO_VAL_22_2404_2+TCO_VAL_22_2405_2+TCO_VAL_22_2406_2 _ 	
+TCO_VAL_24_04_2+TCO_VAL_24_05_2+TCO_VAL_24_06_2+TCO_VAL_24_07_2+TCO_VAL_24_08_2+TCO_VAL_24_09_2+TCO_VAL_24_10_2+TCO_VAL_24_18_2+TCO_VAL_24_21_2+tco_val_24_2201_2+tco_val_24_2202_2+TCO_VAL_24_2301_2+TCO_VAL_24_2302_2+TCO_VAL_24_2303_2+TCO_VAL_24_2304_2+TCO_VAL_24_2305_2+TCO_VAL_24_2306_2+TCO_VAL_24_2307_2+TCO_VAL_24_2308_2+TCO_VAL_24_2401_2+TCO_VAL_24_2402_2+TCO_VAL_24_2403_2+TCO_VAL_24_2404_2+TCO_VAL_24_2405_2+TCO_VAL_24_2406_2 _	
+TCO_VAL_21_04_2+TCO_VAL_21_05_2+TCO_VAL_21_06_2+TCO_VAL_21_07_2+TCO_VAL_21_08_2+TCO_VAL_21_09_2+TCO_VAL_21_10_2+TCO_VAL_21_18_2+TCO_VAL_21_21_2+tco_val_21_2201_2+tco_val_21_2202_2+TCO_VAL_21_2301_2+TCO_VAL_21_2302_2+TCO_VAL_21_2303_2+TCO_VAL_21_2304_2+TCO_VAL_21_2305_2+TCO_VAL_21_2306_2+TCO_VAL_21_2307_2+TCO_VAL_21_2308_2+TCO_VAL_21_2401_2+TCO_VAL_21_2402_2+TCO_VAL_21_2403_2+TCO_VAL_21_2404_2+TCO_VAL_21_2405_2+TCO_VAL_21_2406_2 _
+REC_TCO_VAL_NETS_2 _
+TCO_VAL_22_01_2+TCO_VAL_22_02_2+TCO_val_22_03_2+TCO_VAL_22_11_2+TCO_VAL_22_12_2+TCO_VAL_22_13_2 _
+TCO_VAL_24_01_2+TCO_VAL_24_02_2+TCO_val_24_03_2+TCO_VAL_24_11_2+TCO_VAL_24_12_2+TCO_VAL_24_13_2 _
+TCO_VAL_21_01_2+TCO_VAL_21_02_2+TCO_val_21_03_2+TCO_VAL_21_11_2+TCO_VAL_21_12_2+TCO_VAL_21_13_2 _
+TCO_VAL_SEC_14_2+TCO_VAL_SEC_15_2+TCO_VAL_SEC_16_2+TCO_VAL_SEC_17_2+TCO_VAL_SEC_19_2+TCO_VAL_SEC_20_2	TCO_VAL_22_14_2+TCO_VAL_22_15_2+TCO_VAL_22_16_2+TCO_VAL_22_17_2+TCO_VAL_22_19_2+TCO_VAL_22_20_2 _ 
+TCO_VAL_24_14_2+TCO_VAL_24_15_2+TCO_VAL_24_16_2+TCO_VAL_24_17_2+TCO_VAL_24_19_2+TCO_VAL_24_20_2 _
+TCO_VAL_21_14_2+TCO_VAL_21_15_2+TCO_VAL_21_16_2+TCO_VAL_21_17_2+TCO_VAL_21_19_2+TCO_VAL_21_20_2 _
+DEP_val_1 REC_VAL_1 (0-BF_G_VAL_1) DEBT_G_VAL_1 REC_TCO_VAL_1	ENERT_22_1*PENERT_22_1	ENERT_24_1*PENERT_24_1	ENERT_23_1*PENERT_23_1 ENERT_21_1*PENERT_21_1 _
+TCO_VAL_HH_1 _
+TCO_VAL_HH_21_H01_1+TCO_VAL_HH_24_H01_1+TCO_VAL_HH_22_H01_1*(Q_MTEP_H_BUIL_22_1)/(Q_MTEP_H_BUIL_22_1+Q_MTEP_H_AUTO_22_1) _
+TCO_VAL_HH_22_H01_1*(Q_MTEP_H_BUIL_22_1)/(Q_MTEP_H_BUIL_22_1+Q_MTEP_H_AUTO_22_1) _
+TCO_VAL_HH_24_H01_1 _
+TCO_VAL_HH_21_H01_1 _
+TCO_VAL_HH_22_H01_1*(Q_MTEP_H_AUTO_22_1)/(Q_MTEP_H_BUIL_22_1+Q_MTEP_H_AUTO_22_1) _
+TCO_VAL_SEC_1 REC_TCO_VAL_ETS_1 _
+TCO_VAL_22_04_1+TCO_VAL_22_05_1+TCO_VAL_22_06_1+TCO_VAL_22_07_1+TCO_VAL_22_08_1+TCO_VAL_22_09_1+TCO_VAL_22_10_1+TCO_VAL_22_18_1+TCO_VAL_22_21_1+tco_val_22_2201_1+tco_val_22_2202_1+TCO_VAL_22_2301_1+TCO_VAL_22_2302_1+TCO_VAL_22_2303_1+TCO_VAL_22_2304_1+TCO_VAL_22_2305_1+TCO_VAL_22_2306_1+TCO_VAL_22_2307_1+TCO_VAL_22_2308_1+TCO_VAL_22_2401_1+TCO_VAL_22_2402_1+TCO_VAL_22_2403_1+TCO_VAL_22_2404_1+TCO_VAL_22_2405_1+TCO_VAL_22_2406_1 _
+TCO_VAL_24_04_1+TCO_VAL_24_05_1+TCO_VAL_24_06_1+TCO_VAL_24_07_1+TCO_VAL_24_08_1+TCO_VAL_24_09_1+TCO_VAL_24_10_1+TCO_VAL_24_18_1+TCO_VAL_24_21_1+tco_val_24_2201_1+TCO_VAL_24_2202_1+TCO_VAL_24_2301_1+TCO_VAL_24_2302_1+TCO_VAL_24_2303_1+TCO_VAL_24_2304_1+TCO_VAL_24_2305_1+TCO_VAL_24_2306_1+TCO_VAL_24_2307_1+TCO_VAL_24_2308_1+TCO_VAL_24_2401_1+TCO_VAL_24_2402_1+TCO_VAL_24_2403_1+TCO_VAL_24_2404_1+TCO_VAL_24_2405_1+TCO_VAL_24_2406_1 _
+TCO_VAL_21_04_1+TCO_VAL_21_05_1+TCO_VAL_21_06_1+TCO_VAL_21_07_1+TCO_VAL_21_08_1+TCO_VAL_21_09_1+TCO_VAL_21_10_1+TCO_VAL_21_18_1+TCO_VAL_21_21_1+tco_val_21_2201_1+tco_val_21_2202_1+TCO_VAL_21_2301_1+TCO_VAL_21_2302_1+TCO_VAL_21_2303_1+TCO_VAL_21_2304_1+TCO_VAL_21_2305_1+TCO_VAL_21_2306_1+TCO_VAL_21_2307_1+TCO_VAL_21_2308_1+TCO_VAL_21_2401_1+TCO_VAL_21_2402_1+TCO_VAL_21_2403_1+TCO_VAL_21_2404_1+TCO_VAL_21_2405_1+TCO_VAL_21_2406_1 _
+REC_TCO_VAL_NETS_1 _
+TCO_VAL_22_01_1+TCO_VAL_22_02_1+TCO_val_22_03_1+TCO_VAL_22_11_1+TCO_VAL_22_12_1+TCO_VAL_22_13_1 _
+TCO_VAL_24_01_1+TCO_VAL_24_02_1+TCO_val_24_03_1+TCO_VAL_24_11_1+TCO_VAL_24_12_1+TCO_VAL_24_13_1 _
+TCO_VAL_21_01_1+TCO_VAL_21_02_1+TCO_val_21_03_1+TCO_VAL_21_11_1+TCO_VAL_21_12_1+TCO_VAL_21_13_1 _ 
+TCO_VAL_SEC_14_1+TCO_VAL_SEC_15_1+TCO_VAL_SEC_16_1+TCO_VAL_SEC_17_1+TCO_VAL_SEC_19_1+TCO_VAL_SEC_20_1	TCO_VAL_22_14_1+TCO_VAL_22_15_1+TCO_VAL_22_16_1+TCO_VAL_22_17_1+TCO_VAL_22_19_1+TCO_VAL_22_20_1 TCO_VAL_24_14_1+TCO_VAL_24_15_1+TCO_VAL_24_16_1+TCO_VAL_24_17_1+TCO_VAL_24_19_1+TCO_VAL_24_20_1 _ 
+TCO_VAL_21_14_1+TCO_VAL_21_15_1+TCO_VAL_21_16_1+TCO_VAL_21_17_1+TCO_VAL_21_19_1+TCO_VAL_21_20_1 _
+EMS_TOT_2 _
+EMS_HH_22_2+EMS_SEC_22_01_2+EMS_SEC_22_02_2+EMS_SEC_22_03_2+EMS_SEC_22_04_2+EMS_SEC_22_05_2+EMS_SEC_22_06_2+EMS_SEC_22_07_2+EMS_SEC_22_08_2+EMS_SEC_22_09_2+EMS_SEC_22_12_2+EMS_SEC_22_13_2+EMS_SEC_22_14_2+EMS_SEC_22_15_2+EMS_SEC_22_16_2+EMS_SEC_22_17_2+EMS_SEC_22_18_2+EMS_SEC_22_19_2+EMS_SEC_22_20_2 EMS_HH_24_2+EMS_SEC_2401_2+EMS_SEC_24_01_2+EMS_SEC_24_02_2+EMS_SEC_24_03_2+EMS_SEC_24_04_2+EMS_SEC_24_05_2+EMS_SEC_24_06_2+EMS_SEC_24_07_2+EMS_SEC_24_08_2+EMS_SEC_24_09_2+EMS_SEC_24_10_2+EMS_SEC_24_11_2+EMS_SEC_24_12_2+EMS_SEC_24_13_2+EMS_SEC_24_14_2+EMS_SEC_24_15_2+EMS_SEC_24_16_2+EMS_SEC_24_17_2+EMS_SEC_24_18_2+EMS_SEC_24_19_2+EMS_SEC_24_20_2 _
+       EMS_SEC_2302_2+EMS_SEC_2303_2+EMS_SEC_2304_2 EMS_HH_21_2+EMS_SEC_21_05_2+EMS_SEC_21_06_2+EMS_SEC_21_07_2+EMS_SEC_21_08_2+EMS_SEC_21_10_2+EMS_SEC_21_12_2+EMS_SEC_21_19_2+EMS_SEC_21_20_2 EMS_DC_05_2+EMS_DC_04_2 EMS_HH_21_2+EMS_HH_24_2+EMS_HH_22_2*(@ELEM(PENER_BUIL_H01_22,2006)*ENER_BUIL_H01_22_2)/EXP_22_H01_2 _
+       EMS_HH_22_2*(EXP_AUTO_H01_22_2/EXP_22_H01_2) _
+       EMS_SEC_04_2+EMS_SEC_05_2+EMS_SEC_06_2+EMS_SEC_07_2+EMS_SEC_08_2+EMS_SEC_09_2+EMS_SEC_10_2+EMS_SEC_18_2+EMS_SEC_21_19_2+EMS_SEC_21_20_2+EMS_SEC_2201_2+EMS_SEC_2302_2+EMS_SEC_2303_2+EMS_SEC_2304_2+EMS_SEC_2401_2+EMS_DC_04_2+EMS_DC_05_2 _
+        EMS_SEC_01_2+EMS_SEC_02_2+EMS_SEC_03_2+EMS_SEC_11_2+EMS_SEC_12_2+EMS_SEC_13_2 _             
+        EMS_SEC_14_2+EMS_SEC_15_2+EMS_SEC_16_2+EMS_SEC_17_2+EMS_SEC_19_2+EMS_SEC_20_2 _               
+        EMS_TOT_1 EMS_HH_22_1+EMS_SEC_22_01_1+EMS_SEC_22_02_1+EMS_SEC_22_03_1+EMS_SEC_22_04_1+EMS_SEC_22_05_1+EMS_SEC_22_06_1+EMS_SEC_22_07_1+EMS_SEC_22_08_1+EMS_SEC_22_09_1+EMS_SEC_22_12_1+EMS_SEC_22_13_1+EMS_SEC_22_14_1+EMS_SEC_22_15_1+EMS_SEC_22_16_1+EMS_SEC_22_17_1+EMS_SEC_22_18_1+EMS_SEC_22_19_1+EMS_SEC_22_20_1 EMS_HH_24_1+EMS_SEC_2401_1+EMS_SEC_24_01_1+EMS_SEC_24_02_1+EMS_SEC_24_03_1+EMS_SEC_24_04_1+EMS_SEC_24_05_1+EMS_SEC_24_06_1+EMS_SEC_24_07_1+EMS_SEC_24_08_1+EMS_SEC_24_09_1+EMS_SEC_24_10_1+EMS_SEC_24_11_1+EMS_SEC_24_12_1+EMS_SEC_24_13_1+EMS_SEC_24_14_1+EMS_SEC_24_15_1+EMS_SEC_24_16_1+EMS_SEC_24_17_1+EMS_SEC_24_18_1+EMS_SEC_24_19_1+EMS_SEC_24_20_1 _
+        EMS_SEC_2302_1+EMS_SEC_2303_1+EMS_SEC_2304_1 EMS_HH_21_1+EMS_SEC_21_05_1+EMS_SEC_21_06_1+EMS_SEC_21_07_1+EMS_SEC_21_08_1+EMS_SEC_21_10_1+EMS_SEC_21_12_1+EMS_SEC_21_19_1+EMS_SEC_21_20_1 _
+       EMS_DC_05_1+EMS_DC_04_1 _
+       EMS_HH_21_1+EMS_HH_24_1+EMS_HH_22_1*(@ELEM(PENER_BUIL_H01_22,2006)*ENER_BUIL_H01_22_1)/EXP_22_H01_1 _
+       EMS_HH_22_1*(EXP_AUTO_H01_22_1/EXP_22_H01_1) _
+       EMS_SEC_04_1+EMS_SEC_05_1+EMS_SEC_06_1+EMS_SEC_07_1+EMS_SEC_08_1+EMS_SEC_09_1+EMS_SEC_10_1+EMS_SEC_18_1+EMS_SEC_21_19_1+EMS_SEC_21_20_1+EMS_SEC_2201_1+EMS_SEC_2302_1+EMS_SEC_2303_1+EMS_SEC_2304_1+EMS_SEC_2401_1+EMS_DC_04_1+EMS_DC_05_1 _
+       EMS_SEC_01_1+EMS_SEC_02_1+EMS_SEC_03_1+EMS_SEC_11_1+EMS_SEC_12_1+EMS_SEC_13_1 _
+       EMS_SEC_14_1+EMS_SEC_15_1+EMS_SEC_16_1+EMS_SEC_17_1+EMS_SEC_19_1+EMS_SEC_20_1 ER_TOTAL_2 _
+       ER_TRANS_PRIVATE_2+ER_TRANS_PUBLIC_2 ER_TRANS_PRIVATE_2 ER_TRANS_PRIVATE_OIL_2 ER_TRANS_PRIVATE_ELEC_2 ER_TRANS_PUBLIC_2 ER_TRANS_PUBLIC_OIL_2 _
+       ER_TRANS_PUBLIC_ELEC_2 ER_RESIDENTIAL_2 ER_RESIDENTIAL_OIL_2 ER_RESIDENTIAL_ELEC_2 ER_RESIDENTIAL_GAS_2 ER_AGRICULTURE_2 ER_AGRICULTURE_OIL_2 _
+       ER_AGRICULTURE_ELEC_2 ER_INDUS_2 ER_INDUS_OIL_2 ER_INDUS_ELEC_2 ER_INDUS_GAS_2 ER_INDUS_COAL_2 ER_TERTIARY_2 ER_TERTIARY_OIL_2 ER_TERTIARY_ELEC_2 ER_TERTIARY_GAS_2 ER_OIL_2 ER_GAS_2 ER_COAL_2 ER_ELEC_2 ER_ELEC_2301_2 ER_ELEC_2302_2 ER_ELEC_2303_2 _
+        ER_ELEC_2304_2 ER_ELEC_2305_2 ER_ELEC_2306_2 ER_ELEC_2307_2 ER_ELEC_2308_2 ER_TOTAL_1 ER_TRANS_PRIVATE_1+ER_TRANS_PUBLIC_1 ER_TRANS_PRIVATE_1 ER_TRANS_PRIVATE_OIL_1 ER_TRANS_PRIVATE_ELEC_1 ER_TRANS_PUBLIC_1 ER_TRANS_PUBLIC_OIL_1 ER_TRANS_PUBLIC_ELEC_1 ER_RESIDENTIAL_1 ER_RESIDENTIAL_OIL_1 ER_RESIDENTIAL_ELEC_1 ER_RESIDENTIAL_GAS_1 ER_AGRICULTURE_1 ER_AGRICULTURE_OIL_1 ER_AGRICULTURE_ELEC_1 ER_INDUS_1 ER_INDUS_OIL_1 ER_INDUS_ELEC_1 ER_INDUS_GAS_1 ER_INDUS_COAL_1 ER_TERTIARY_1 ER_TERTIARY_OIL_1 ER_TERTIARY_ELEC_1 ER_TERTIARY_GAS_1 ER_OIL_1 _
+        ER_GAS_1 ER_COAL_1 ER_ELEC_1 ER_ELEC_2301_1 ER_ELEC_2302_1 ER_ELEC_2303_1 ER_ELEC_2304_1 ER_ELEC_2305_1 ER_ELEC_2306_1 ER_ELEC_2307_1 ER_ELEC_2308_1 ENER_H01_2 _
+        @ELEM(PENER_BUIL_H01,2006)*ENER_BUIL_H01_2 EXP_AUTO_H01_2 ENER_H01_1 @ELEM(PENER_BUIL_H01,2006)*ENER_BUIL_H01_1 EXP_AUTO_H01_1 KM_auto_H01_2 _
+        KM_TRAVELER_18_H01_2 KM_TRAV_AUTO_LD_H01_2 KM_TRAV_AUTO_CD_H01_2 KM_TRAVELER_14_H01_2 KM_TRAVELER_15_H01_2 KM_TRAVELER_CD_H01_2 KM_TRAVELER_LD_H01_2 _
+        KM_AUTO_H01_1 KM_TRAVELER_18_H01_1 KM_TRAV_AUTO_LD_H01_1 KM_TRAV_AUTO_CD_H01_1 KM_TRAVELER_14_H01_1 _
+        KM_TRAVELER_15_H01_1 KM_TRAVELER_CD_H01_1 KM_TRAVELER_LD_H01_1 _
+        ER_Auto_2 ER_AUTO_th_A_2 ER_AUTO_th_B_2 ER_AUTO_th_C_2 ER_AUTO_th_D_2 ER_AUTO_th_E_2 ER_AUTO_th_F_2 ER_AUTO_th_G_2 _
+        ER_AUTO_elec_A_2 ER_AUTO_elec_B_2 ER_AUTO_elec_C_2 ER_AUTO_elec_D_2 ER_AUTO_elec_E_2 ER_AUTO_elec_F_2 ER_AUTO_elec_G_2 ER_Auto_Coal_2 ER_auto_th_2 ER_Auto_Elec_2 ER_Auto_Gas_2 _
+        ER_NEWAUTO_2 ER_NEWAUTO_th_2 ER_newauto_th_A_2 ER_newauto_th_B_2 ER_newauto_th_C_2 ER_newauto_th_D_2 ER_newauto_th_E_2 ER_newauto_th_F_2  ER_newauto_th_G_2  _
+        ER_NEWAUTO_elec_2 ER_NEWAUTO_elec_A_2 ER_NEWAUTO_elec_B_2 ER_NEWAUTO_elec_C_2 ER_NEWAUTO_elec_D_2 ER_NEWAUTO_elec_E_2 ER_NEWAUTO_elec_F_2 ER_NEWAUTO_elec_G_2 _
+        ER_Auto_1 ER_AUTO_th_A_1 ER_AUTO_th_B_1 ER_AUTO_th_C_1 ER_AUTO_th_D_1 ER_AUTO_th_E_1 ER_AUTO_th_F_1 ER_AUTO_th_G_1 ER_AUTO_elec_A_1 ER_AUTO_elec_B_1 ER_AUTO_elec_C_1 ER_AUTO_elec_D_1 ER_AUTO_elec_E_1 ER_AUTO_elec_F_1 ER_AUTO_elec_G_1 ER_Auto_Coal_1 ER_auto_th_1 ER_Auto_Elec_1 ER_Auto_Gas_1 _
+        ER_NEWAUTO_1 ER_NEWAUTO_th_1 ER_newauto_th_A_1 ER_newauto_th_B_1 ER_newauto_th_C_1 ER_newauto_th_D_1 ER_newauto_th_E_1 ER_newauto_th_F_1 _
+        ER_NEWAUTO_elec_1 ER_NEWAUTO_elec_A_1 ER_NEWAUTO_elec_B_1 ER_NEWAUTO_elec_C_1 ER_NEWAUTO_elec_D_1 ER_NEWAUTO_elec_E_1 ER_NEWAUTO_elec_F_1 _
+        ER_BUIL_2 ER_BUIL_A_2 ER_BUIL_B_2 ER_BUIL_C_2 ER_BUIL_D_2 ER_BUIL_E_2 ER_BUIL_F_2 ER_BUIL_G_2  SUB_REHAB_VAL_2 tax_cr_19_2 ER_BUIL_1 _
+        ER_BUIL_A_1 ER_BUIL_B_1 ER_BUIL_C_1 ER_BUIL_D_1 ER_BUIL_E_1 ER_BUIL_F_1 ER_BUIL_G_1 SUB_REHAB_VAL_1 tax_cr_19_1 _
+	  pch_2 pch_1 pgdp_2 pgdp_1 gdp_2 gdp_1 _
+       L_01_1	L_02_1	L_03_1	L_04_1	L_05_1	L_06_1	L_07_1	L_08_1	L_09_1	L_10_1	L_11_1 L_12_1 L_13_1 L_14_1 L_15_1	L_16_1	L_17_1	L_18_1	L_19_1	L_20_1	L_21_1 _
+      L_2201_1	L_2202_1	L_2301_1	L_2302_1	L_2303_1	L_2304_1	L_2305_1	L_2306_1	L_2307_1 L_2308_1 L_2401_1 L_2402_1 L_2403_1 L_2404_1 L_2405_1 _
+	 L_2406_1	L_01_2	L_02_2	L_03_2	L_04_2	L_05_2	L_06_2	L_07_2	L_08_2	L_09_2	L_10_2	L_11_2	L_12_2	L_13_2	L_14_2	L_15_2	L_16_2	L_17_2	L_18_2	L_19_2	L_20_2	L_21_2 _ 
+      L_2201_2	L_2202_2	L_2301_2	L_2302_2	L_2303_2	L_2304_2	L_2305_2	L_2306_2	L_2307_2 L_2308_2 _
+      L_2401_2	L_2402_2	L_2403_2	L_2404_2	L_2405_2	L_2406_2 _ 	
+      VA_01_1	VA_02_1	VA_03_1	VA_04_1	VA_05_1	VA_06_1	VA_07_1	VA_08_1	VA_09_1 VA_10_1 VA_11_1 VA_12_1 VA_13_1 VA_14_1 VA_15_1 VA_16_1 VA_17_1 VA_18_1 VA_19_1 VA_20_1 VA_21_1 _
+      VA_2201_1 VA_2202_1 VA_2301_1 VA_2302_1 VA_2303_1 VA_2304_1	VA_2305_1 VA_2306_1 VA_2307_1 VA_2308_1 _
+      VA_2401_1 VA_2402_1 VA_2403_1	 VA_2404_1 VA_2405_1 VA_2406_1 _	
+      VA_01_2	VA_02_2	VA_03_2 VA_04_2 VA_05_2 VA_06_2 VA_07_2 VA_08_2 VA_09_2 VA_10_2 VA_11_2 VA_12_2 VA_13_2 VA_14_2 VA_15_2 VA_16_2 VA_17_2 VA_18_2 VA_19_2 VA_20_2 VA_21_2 _
+      VA_2201_2 VA_2202_2 VA_2301_2 VA_2302_2 VA_2303_2 VA_2304_2	VA_2305_2	 VA_2306_2 VA_2307_2 VA_2308_2 _
+      VA_2401_2 VA_2402_2 VA_2403_2 VA_2404_2 VA_2405_2 VA_2406_2 _
+TTCO_VOL_21_2 TTCO_VOL_22_2 TTCO_VOL_24_2 TTCO_VOL_21_1 TTCO_VOL_22_1 TTCO_VOL_24_1 DISPINC_VAL_2 DISPINC_VAL_1 _
+(gdpter_2/gdpbis_2-1)*100 (gdpter_1/gdpbis_1-1)*100 _
+IA_1 IA_01_1 IA_02_1 IA_03_1 IA_04_1 IA_05_1 IA_06_1 IA_07_1 IA_08_1 IA_09_1 IA_10_1 IA_11_1 IA_12_1 IA_13_1 IA_13_20_1 IA_14_1 IA_15_1  IA_16_1 IA_17_1  IA_18_1 IA_19_1 IA_20_1 IA_21_1 _
+IA_2201_1 IA_2202_1 IA_2301_1 IA_2302_1 IA_2303_1 IA_2304_1 IA_2305_1 IA_2306_1 IA_2307_1 IA_2308_1 IA_2401_1 IA_2402_1 IA_2403_1 IA_2404_1 IA_2405_1 IA_2406_1   _
+REHAB_VAL_1 NEWBUIL_H01_1 PNEWBUIL_H01_1 PREHAB_H01_1 REHAB_H01_1 PEXP_13_H01_1 CH_03_1 PGDP_1 _
+IA_2 IA_01_2 IA_02_2 IA_03_2 IA_04_2 IA_05_2 IA_06_2 IA_07_2 IA_08_2 IA_09_2 IA_10_2 IA_11_2 IA_12_2 IA_13_2 IA_13_20_2 IA_14_2 IA_15_2 IA_16_2 IA_17_2 IA_18_2 IA_19_2 IA_20_2 IA_21_2 _
+IA_2201_2 IA_2202_2 IA_2301_2 IA_2302_2 IA_2303_2 IA_2304_2 IA_2305_2 IA_2306_2 IA_2307_2 IA_2308_2 IA_2401_2 IA_2402_2 IA_2403_2 IA_2404_2 IA_2405_2 IA_2406_2  _
+REHAB_VAL_2 NEWBUIL_H01_2 PNEWBUIL_H01_2 PREHAB_H01_2 REHAB_H01_2 PEXP_13_H01_2 CH_03_2 PGDP_2 _
+CH_01_2 CH_02_2 CH_03_2 CH_04_2 CH_05_2 CH_06_2 CH_07_2 CH_08_2 CH_09_2 CH_10 CH_11_2 CH_12_2 CH_13_2 CH_14_2 _
+CH_15_2 CH_16_2 CH_17_2 CH_18_2 CH_19_2 CH_20_2 CH_21_2 CH_22_2 CH_23_2 CH_24_2 _ 
+CH_01_1 CH_02_1 CH_03_1 CH_04_1 CH_05_1 CH_06_1 CH_07_1 CH_08_1 CH_09_1 CH_10 CH_11_1 CH_12_1 CH_13_1 CH_14_1 _
+CH_15_1 CH_16_1 CH_17_1 CH_18_1 CH_19_1 CH_20_1 CH_21_1 CH_22_1 CH_23_1 CH_24_1 _
+PCH_01_2 PCH_02_2 PCH_03_2 PCH_04_2 PCH_05_2 PCH_06_2 PCH_07_2 PCH_08_2 PCH_09_2 PCH_10 _
+PCH_11_2 PCH_12_2 PCH_13_2 PCH_14_2 PCH_15_2 PCH_16_2 PCH_17_2 PCH_18_2 PCH_19_2 PCH_20_2 _
+PCH_21_2 PCH_22_2 PCH_23_2 PCH_24_2 PCH_01_1 PCH_02_1 PCH_03_1 PCH_04_1 PCH_05_1 PCH_06_1 _ 
+PCH_07_1 PCH_08_1 PCH_09_1 PCH_10 PCH_11_1 PCH_12_1 PCH_13_1 PCH_14_1 PCH_15_1 PCH_16_1 _ 
+PCH_17_1 PCH_18_1 PCH_19_1 PCH_20_1 PCH_21_1 PCH_22_1 PCH_23_1 PCH_24_1 PENER_BUIL_H01_2 PENER_BUIL_H01_1 ENER_BUIL_H01_2 ENER_BUIL_H01_1 pexp_auto_h01_2 pexp_auto_h01_1 _
+exp_mobauto_val_h01_2 exp_mobauto_val_h01_1 exp_housing_val_h01_2 exp_housing_val_h01_1 pop_tot _
+I_MDE_01_1 I_MDE_02_1 I_MDE_03_1 I_MDE_04_1	I_MDE_05_1 I_MDE_06_1 I_MDE_07_1 I_MDE_08_1	I_MDE_09_1 I_MDE_10_1 I_MDE_11_1 _
+ I_MDE_12_1 I_MDE_13_1 I_MDE_19_1 I_MDE_20_1 I_MDE_01_2 I_MDE_02_2 I_MDE_03_2 I_MDE_04_2 I_MDE_05_2 I_MDE_06_2 I_MDE_07_2 I_MDE_08_2 I_MDE_09_2 I_MDE_10_2 I_MDE_11_2 I_MDE_12_2 I_MDE_13_2  _
+I_MDE_19_2 I_MDE_20_2 NDI_ADEB_VOL_1 NDI_ADEB_VOL_2 INV_Road PIA_13_19_2 PIA_13_19_1 PIA_13_19_1 PIA_13_20_2 PIA_20_2 PIA_20_1 PIA_15_2 CSPE_1 CSPE_2 _
+Carbon_foot_1 Carbon_foot_2 PSUBD_15_2*SUBD_15_2 CU_MWH_PGDP_21_1 CU_MWH_PGDP_22_1 CU_MWH_PGDP_23_1  CU_MWH_PGDP_24_1 CU_MWH_PGDP_2201_1 CU_MWH_PGDP_2202_1 CU_MWH_PGDP_2301_1 _
+CU_MWH_PGDP_2302_1 CU_MWH_PGDP_2303_1 CU_MWH_PGDP_2304_1 CU_MWH_PGDP_2305_1 CU_MWH_PGDP_2306_1 CU_MWH_PGDP_2307_1 CU_MWH_PGDP_2308_1 CU_MWH_PGDP_2401_1 CU_MWH_PGDP_2402_1 _
+CU_MWH_PGDP_2403_1 CU_MWH_PGDP_2404_1 CU_MWH_PGDP_2405_1 CU_MWH_PGDP_2406_1 CU_MWH_PGDP_21_2 CU_MWH_PGDP_22_2 CU_MWH_PGDP_23_2  CU_MWH_PGDP_24_2 CU_MWH_PGDP_2201_2 _
+CU_MWH_PGDP_2202_2 CU_MWH_PGDP_2301_2 CU_MWH_PGDP_2302_2 CU_MWH_PGDP_2303_2 CU_MWH_PGDP_2304_2 CU_MWH_PGDP_2305_2 CU_MWH_PGDP_2306_2 CU_MWH_PGDP_2307_2 CU_MWH_PGDP_2308_2 _
+CU_MWH_PGDP_2401_2 CU_MWH_PGDP_2402_2 CU_MWH_PGDP_2403_2 CU_MWH_PGDP_2404_2 CU_MWH_PGDP_2405_2 CU_MWH_PGDP_2406_2 UNR_TOT_1 UNR_TOT_2 _
+GDP_1 CH_1 G_1 I_1+CH_13_1 I_1-IA_20_1 CH_13_1 IA_20_1 X_1 M_1 DISPINC_VAL_1/(POP_TOT*PCH_1) L_1 SP_G_VAL_1/PGDP_1 DEBT_G_VAL_1/PGDP_1 GDP_2 CH_2 G_2 I_2+CH_13_2 I_2-IA_20_2 CH_13_2 IA_20_2 X_2 M_2 DISPINC_VAL_2/(POP_TOT*PCH_2) L_2 SP_G_VAL_2/PGDP_2 DEBT_G_VAL_2/PGDP_2 _
+Exp_13_1 Exp_13_2 exp_newauto_val_h01_ca_1 exp_newauto_val_h01_cb_1 exp_newauto_val_h01_cc_1 exp_newauto_val_h01_cd_1 exp_newauto_val_h01_ce_1 exp_newauto_val_h01_cf_1 exp_newauto_val_h01_cg_1 exp_newauto_val_h01_ca_2 exp_newauto_val_h01_cb_2 exp_newauto_val_h01_cc_2 _
+exp_newauto_val_h01_cd_2 exp_newauto_val_h01_ce_2 exp_newauto_val_h01_cf_2 exp_newauto_val_h01_cg_2 100*(ts_2-ts_1) _
+100*((PY_2*Y_2/(Y_2-Y_20_2)-PY_20_2*Y_20_2/(Y_2-Y_20_2))/(PY_1*Y_1/(Y_1-Y_20_1)-PY_20_1*Y_20_1/(Y_1-Y_20_1))-1) _
+100*((PVA_2*VA_2/(VA_2-VA_20_2)-PVA_20_2*VA_20_2/(VA_2-VA_20_2))/(PVA_1*VA_1/(VA_1-VA_20_1)-PVA_20_1*VA_20_1/(VA_1-VA_20_1))-1) _
+
+100*(DEBT_G_VAL_2/(PGDP_2*GDP_2)-DEBT_G_VAL_1/(PGDP_1*GDP_1)) _
+100*((DEBT_NewB_Val_H01_CA_2+DEBT_NewB_Val_H01_CB_2+DEBT_NewB_Val_H01_CC_2+DEBT_NewB_Val_H01_CD_2+DEBT_NewB_Val_H01_CE_2+DEBT_NewB_Val_H01_CF_2+DEBT_NewB_Val_H01_CG_2+DEBT_REHAB_Val_H01_CA_2+DEBT_REHAB_Val_H01_CB_2+DEBT_REHAB_Val_H01_CC_2+DEBT_REHAB_Val_H01_CD_2+DEBT_REHAB_Val_H01_CE_2+DEBT_REHAB_Val_H01_CF_2+DEBT_REHAB_Val_H01_CG_2+DEBT_auto_Val_H01_CA_2+DEBT_auto_Val_H01_CB_2+DEBT_auto_Val_H01_CC_2+DEBT_auto_Val_H01_CD_2+DEBT_auto_Val_H01_CE_2+DEBT_auto_Val_H01_CF_2+DEBT_auto_Val_H01_CG_2)/(PGDP_2*GDP_2)-(DEBT_NewB_Val_H01_CA_1+DEBT_NewB_Val_H01_CB_1+DEBT_NewB_Val_H01_CC_1+DEBT_NewB_Val_H01_CD_1+DEBT_NewB_Val_H01_CE_1+DEBT_NewB_Val_H01_CF_1+DEBT_NewB_Val_H01_CG_1+DEBT_REHAB_Val_H01_CA_1+DEBT_REHAB_Val_H01_CB_1+DEBT_REHAB_Val_H01_CC_1+DEBT_REHAB_Val_H01_CD_1+DEBT_REHAB_Val_H01_CE_1+DEBT_REHAB_Val_H01_CF_1+DEBT_REHAB_Val_H01_CG_1+DEBT_auto_Val_H01_CA_1+DEBT_auto_Val_H01_CB_1+DEBT_auto_Val_H01_CC_1+DEBT_auto_Val_H01_CD_1+DEBT_auto_Val_H01_CE_1+DEBT_auto_Val_H01_CF_1+DEBT_auto_Val_H01_CG_1)/(PGDP_1*GDP_1)) _
+
+100*((DEBT_NewB_Val_H01_CA_2+DEBT_NewB_Val_H01_CB_2+DEBT_NewB_Val_H01_CC_2+DEBT_NewB_Val_H01_CD_2+DEBT_NewB_Val_H01_CE_2+DEBT_NewB_Val_H01_CF_2+DEBT_NewB_Val_H01_CG_2)/(PGDP_2*GDP_2)-(DEBT_NewB_Val_H01_CA_1+DEBT_NewB_Val_H01_CB_1+DEBT_NewB_Val_H01_CC_1+DEBT_NewB_Val_H01_CD_1+DEBT_NewB_Val_H01_CE_1+DEBT_NewB_Val_H01_CF_1+DEBT_NewB_Val_H01_CG_1)/(PGDP_1*GDP_1)) _
+
+100*((DEBT_REHAB_Val_H01_CA_2+DEBT_REHAB_Val_H01_CB_2+DEBT_REHAB_Val_H01_CC_2+DEBT_REHAB_Val_H01_CD_2+DEBT_REHAB_Val_H01_CE_2+DEBT_REHAB_Val_H01_CF_2+DEBT_REHAB_Val_H01_CG_2)/(PGDP_2*GDP_2)-(DEBT_REHAB_Val_H01_CA_1+DEBT_REHAB_Val_H01_CB_1+DEBT_REHAB_Val_H01_CC_1+DEBT_REHAB_Val_H01_CD_1+DEBT_REHAB_Val_H01_CE_1+DEBT_REHAB_Val_H01_CF_1+DEBT_REHAB_Val_H01_CG_1)/(PGDP_1*GDP_1)) _
+
+100*((DEBT_auto_Val_H01_CA_2+DEBT_auto_Val_H01_CB_2+DEBT_auto_Val_H01_CC_2+DEBT_auto_Val_H01_CD_2+DEBT_auto_Val_H01_CE_2+DEBT_auto_Val_H01_CF_2+DEBT_auto_Val_H01_CG_2)/(PGDP_2*GDP_2)-(DEBT_auto_Val_H01_CA_1+DEBT_auto_Val_H01_CB_1+DEBT_auto_Val_H01_CC_1+DEBT_auto_Val_H01_CD_1+DEBT_auto_Val_H01_CE_1+DEBT_auto_Val_H01_CF_1+DEBT_auto_Val_H01_CG_1)/(PGDP_1*GDP_1)) _
+
+L_20_2-L_20_1 _
+100*((L_20_2/L_20_1)-1) _
+
+(L_2-L_20_2)-(L_1-L_20_1) _
+100*((L_s_2)/(L_s_1)-1) _
+
+L_s_2-L_s_1 _
+100*((L_s_20_2/L_s_20_1)-1) _
+
+L_s_20_2-L_s_20_1 _
+100*((L_s_20_2/L_s_20_1)-1) _
+
+(L_s_2-L_s_20_2)-(L_s_1-L_s_20_1) _
+100*(((L_s_2-L_s_20_2)/(L_s_1-L_s_20_1))-1) _ 
+
+100*(((PE_sec_2*E_sec_2/(E_sec_2-Ener_20_2)-PEner_20_2*Ener_20_2/(E_sec_2-Ener_20_2))*(E_sec_2-Ener_20_2)/(MAT_2-MAT_20_2+E_sec_2-Ener_20_2)+(PMAT_2*MAT_2/(MAT_2-MAT_20_2)-PMAT_20_2*MAT_20_2/(MAT_2-MAT_20_2))*(MAT_2-MAT_20_2)/(MAT_2-MAT_20_2+E_sec_2-Ener_20_2))/((PE_sec_1*E_sec_1/(E_sec_1-Ener_20_1)-PEner_20_1*Ener_20_1/(E_sec_1-Ener_20_1))*(E_sec_2-Ener_20_2)/(MAT_1-MAT_20_1+E_sec_1-Ener_20_1)+(PMAT_1*MAT_1/(MAT_1-MAT_20_1)-PMAT_20_1*MAT_20_1/(MAT_1-MAT_20_1))*(MAT_1-MAT_20_1)/(MAT_1-MAT_20_1+E_sec_1-Ener_20_1))-1) _
+
+100*((W_SPB_2/Y_2)/(W_SPB_1/Y_1)-1) _
+100*((cl_bis_2/pva_2)/(cl_bis_1/pva_1)-1) _
+
+100*((DEBT_NewB_Val_tot_H01_CA_2+DEBT_NewB_Val_tot_H01_CB_2+DEBT_NewB_Val_tot_H01_CC_2+DEBT_NewB_Val_tot_H01_CD_2+DEBT_NewB_Val_tot_H01_CE_2+DEBT_NewB_Val_tot_H01_CF_2+DEBT_NewB_Val_tot_H01_CG_2+DEBT_REHAB_Val_tot_H01_CA_2+DEBT_REHAB_Val_tot_H01_CB_2+DEBT_REHAB_Val_tot_H01_CC_2+DEBT_REHAB_Val_tot_H01_CD_2+DEBT_REHAB_Val_tot_H01_CE_2+DEBT_REHAB_Val_tot_H01_CF_2+DEBT_REHAB_Val_tot_H01_CG_2+DEBT_auto_Val_tot_H01_CA_2+DEBT_auto_Val_tot_H01_CB_2+DEBT_auto_Val_tot_H01_CC_2+DEBT_auto_Val_tot_H01_CD_2+DEBT_auto_Val_tot_H01_CE_2+DEBT_auto_Val_tot_H01_CF_2+DEBT_auto_Val_tot_H01_CG_2)/(PGDP_2*GDP_2)-(DEBT_NewB_Val_tot_H01_CA_1+DEBT_NewB_Val_tot_H01_CB_1+DEBT_NewB_Val_tot_H01_CC_1+DEBT_NewB_Val_tot_H01_CD_1+DEBT_NewB_Val_tot_H01_CE_1+DEBT_NewB_Val_tot_H01_CF_1+DEBT_NewB_Val_tot_H01_CG_1+DEBT_REHAB_Val_tot_H01_CA_1+DEBT_REHAB_Val_tot_H01_CB_1+DEBT_REHAB_Val_tot_H01_CC_1+DEBT_REHAB_Val_tot_H01_CD_1+DEBT_REHAB_Val_tot_H01_CE_1+DEBT_REHAB_Val_tot_H01_CF_1+DEBT_REHAB_Val_tot_H01_CG_1+DEBT_auto_Val_tot_H01_CA_1+DEBT_auto_Val_tot_H01_CB_1+DEBT_auto_Val_tot_H01_CC_1+DEBT_auto_Val_tot_H01_CD_1+DEBT_auto_Val_tot_H01_CE_1+DEBT_auto_Val_tot_H01_CF_1+DEBT_auto_Val_tot_H01_CG_1)/(PGDP_1*GDP_1)) _
+
+100*((DEBT_NewB_Val_tot_H01_CA_2+DEBT_NewB_Val_tot_H01_CB_2+DEBT_NewB_Val_tot_H01_CC_2+DEBT_NewB_Val_tot_H01_CD_2+DEBT_NewB_Val_tot_H01_CE_2+DEBT_NewB_Val_tot_H01_CF_2+DEBT_NewB_Val_tot_H01_CG_2)/(PGDP_2*GDP_2)-(DEBT_NewB_Val_tot_H01_CA_1+DEBT_NewB_Val_tot_H01_CB_1+DEBT_NewB_Val_tot_H01_CC_1+DEBT_NewB_Val_tot_H01_CD_1+DEBT_NewB_Val_tot_H01_CE_1+DEBT_NewB_Val_tot_H01_CF_1+DEBT_NewB_Val_tot_H01_CG_1)/(PGDP_1*GDP_1)) _
+
+100*((DEBT_REHAB_Val_tot_H01_CA_2+DEBT_REHAB_Val_tot_H01_CB_2+DEBT_REHAB_Val_tot_H01_CC_2+DEBT_REHAB_Val_tot_H01_CD_2+DEBT_REHAB_Val_tot_H01_CE_2+DEBT_REHAB_Val_tot_H01_CF_2+DEBT_REHAB_Val_tot_H01_CG_2)/(PGDP_2*GDP_2)-(DEBT_REHAB_Val_tot_H01_CA_1+DEBT_REHAB_Val_tot_H01_CB_1+DEBT_REHAB_Val_tot_H01_CC_1+DEBT_REHAB_Val_tot_H01_CD_1+DEBT_REHAB_Val_tot_H01_CE_1+DEBT_REHAB_Val_tot_H01_CF_1+DEBT_REHAB_Val_tot_H01_CG_1)/(PGDP_1*GDP_1)) _
+
+100*((DEBT_auto_Val_tot_H01_CA_2+DEBT_auto_Val_tot_H01_CB_2+DEBT_auto_Val_tot_H01_CC_2+DEBT_auto_Val_tot_H01_CD_2+DEBT_auto_Val_tot_H01_CE_2+DEBT_auto_Val_tot_H01_CF_2+DEBT_auto_Val_tot_H01_CG_2)/(PGDP_2*GDP_2)-(DEBT_auto_Val_tot_H01_CA_1+DEBT_auto_Val_tot_H01_CB_1+DEBT_auto_Val_tot_H01_CC_1+DEBT_auto_Val_tot_H01_CD_1+DEBT_auto_Val_tot_H01_CE_1+DEBT_auto_Val_tot_H01_CF_1+DEBT_auto_Val_tot_H01_CG_1)/(PGDP_1*GDP_1)) _
+
+REC_VAL_1 DIV_GOV_VAL_1 IR_VAL_1 AIC_VAL_1 -CL_S_20_1*L_S_20_1*PROG_L_20_1 PY_20_1*Y_20_1 PTAX_1*TAX_1 PIY_1*IY_1 PIS_1*IS_1 PCSE_TOT_1*CSE_TOT_1 PCSS_TOT_1*CSS_TOT_1 -(PE_20_1*E_20_1) -(PMAT_20_1*MAT_20_1) -(PIY_20_1*IY_20_1) REC_VAL_2 DIV_GOV_VAL_2 IR_VAL_2 AIC_VAL_2 -CL_S_20_2*L_S_20_2*PROG_L_20_2 PY_20_2*Y_20_2 PTAX_2*TAX_2 PIY_2*IY_2 PIS_2*IS_2 PCSE_TOT_2*CSE_TOT_2 PCSS_TOT_2*CSS_TOT_2 -(PE_20_2*E_20_2) -(PMAT_20_2*MAT_20_2) -(PIY_20_2*IY_20_2) DEP_VAL_1 CL_S_20_1*L_S_20_1*PROG_L_20_1 R_G_1(-1)*DEBT_G_VAL_1(-1) PRESOC_VAL_1 SUB_RENOV_VAL_1 SUB_AUTO_VAL_1 PE_20_1*E_20_1 PMAT_20_1*MAT_20_1 PIY_20_1*IY_20_1 PIA_20_1*IA_20_1 PG_1*G_1-PG_20_1*G_20_1 -(PSUB_1*SUB_1-PSUB_01_1*SUB_01_1) -(PSY_1*SY_1-PSY_01_1*SY_01_1) DEP_VAL_2 CL_S_20_2*L_S_20_2*PROG_L_20_2 R_G_2(-1)*DEBT_G_VAL_2(-1) PRESOC_VAL_2 SUB_RENOV_VAL_2 SUB_AUTO_VAL_2 PE_20_2*E_20_2 PMAT_20_2*MAT_20_2 PIY_20_2*IY_20_2 PIA_20_2*IA_20_2 PG_2*G_2-PG_20_2*G_20_2 -(PSUB_2*SUB_2-PSUB_01_2*SUB_01_2) -(PSY_2*SY_2-PSY_01_2*SY_01_2) PGDP_1 PGDP_2 GDP_1 GDP_2 INC_GOV_OTH_NET REDIS_VAL_H _
+
+100*(DEBT_SNF_VAL_2/(PGDP_2*GDP_2)-DEBT_SNF_VAL_1/(PGDP_1*GDP_1)) _
+100*(DEBT_SNF_ENER_2/(PGDP_2*GDP_2)-DEBT_SNF_ENER_1/(PGDP_1*GDP_1)) _
+100*(DEBT_SNF_VAL_2/DEBT_SNF_VAL_1-1) _
+100*(DEBT_SNF_ENER_2/DEBT_SNF_ENER_1-1) _
+
+PRESOC_DOM_Oth_VAL_1 PRESOC_DOM_Oth_VAL_2 PRESOC_DOM_U_VAL_1 PRESOC_DOM_U_VAL_2 PRESOC_ROW_VAL (-PG_20_1*G_20_1) (-PG_20_2*G_20_2) (PG_1*G_1) (PG_2*G_2) REC_VAL_SEC_ETS_2   REC_VAL_SEC_ETS2_2   REC_VAL_ETS2_HH_2   REC_VAL_TCO_HH_2  REC_VAL_SEC_TCO_2 REC_VAL_SEC_ETS_1   REC_VAL_SEC_ETS2_1   REC_VAL_ETS2_HH_1   REC_VAL_TCO_HH_1  REC_VAL_SEC_TCO_1 REDIS_VAL_TCO_H_2  REDIS_VAL_SEC_TCO_2   REDIS_VAL_SEC_ETS_2  REDIS_VAL_ETS2_H_2   REDIS_VAL_SEC_ETS2_2  REDIS_VAL_TCO_H_1  REDIS_VAL_SEC_TCO_1   REDIS_VAL_SEC_ETS_1  REDIS_VAL_ETS2_H_1   REDIS_VAL_SEC_ETS2_1 100*(EMS_tot_2/EMS_tot_1-1) 100*(EMS_hh_2/EMS_hh_1-1)  100*((EMS_SEC_tot_2  + EMS_DC_2)/(EMS_SEC_tot_1  + EMS_DC_1)-1)
+
+
+'Endif
+'	if %exceptions_DGT = "yes" then
+'ajout de variables de sortie calculees dans Exceptions_DGT pour le cahier de variantes Reporting_3.add' 
+                                                                                                                                                                                                                                        
+Reporting_3.sheet(t)
+show Reporting_3
+
+   group Reporting_4 Y_01_1 Y_02_1 Y_03_1 Y_04_1 Y_05_1 Y_06_1 Y_07_1 Y_08_1 Y_09_1 Y_10_1 Y_11_1 Y_12_1 Y_13_1 Y_14_1 Y_15_1 Y_16_1 Y_17_1 Y_18_1 Y_19_1 Y_20_1 Y_21_1 _
+Y_01_2 Y_02_2 Y_03_2 Y_04_2 Y_05_2 Y_06_2 Y_07_2 Y_08_2 Y_09_2 Y_10_2 Y_11_2 Y_12_2 Y_13_2 Y_14_2 Y_15_2 Y_16_2 Y_17_2 Y_18_2 Y_19_2 Y_20_2 Y_21_2  _
+E_01_1 E_02_1 E_03_1 E_04_1 E_05_1 E_06_1 E_07_1 E_08_1 E_09_1 E_10_1 E_11_1 E_12_1 E_13_1 E_14_1 E_15_1 E_16_1 E_17_1 E_18_1 E_19_1 E_20_1 _ 
+E_01_2 E_02_2 E_03_2 E_04_2 E_05_2 E_06_2 E_07_2 E_08_2 E_09_2 E_10_2 E_11_2 E_12_2 E_13_2 E_14_2 E_15_2 E_16_2 E_17_2 E_18_2 E_19_2 E_20_2   _
+VA_01_1 VA_02_1 VA_03_1 VA_04_1 VA_05_1 VA_06_1 VA_07_1 VA_08_1 VA_09_1 VA_10_1 VA_11_1 VA_12_1 VA_13_1 VA_14_1 VA_15_1 VA_16_1 VA_17_1 VA_18_1 VA_19_1 VA_20_1  _
+VA_01_2 VA_02_2 VA_03_2 VA_04_2 VA_05_2 VA_06_2 VA_07_2 VA_08_2 VA_09_2 VA_10_2 VA_11_2 VA_12_2 VA_13_2 VA_14_2 VA_15_2 VA_16_2 VA_17_2 VA_18_2 VA_19_2 VA_20_2 _ 
+AUTO_1 AUTO_2 AUTO_ELEC_1 AUTO_ELEC_2 Q_MTEP_SEC_22_15_1 Q_MTEP_SEC_22_15_2 Q_MTEP_SEC_22_16_1 Q_MTEP_SEC_22_16_2 CID_14_1 CID_14_2  BUIL_1 BUIL_2 M2PERCAPITA  _
+POP_TOT BUIL_H01_DES_1/BUIL_1(-1) BUIL_H01_DES_2/BUIL_2(-1) NEWBUIL_1/100 NEWBUIL_2/100 EXP_18_1 EXP_18_2 _
+Q_Mtep_sec_01_1 Q_Mtep_sec_02_1 Q_Mtep_sec_03_1 Q_Mtep_sec_04_1 Q_Mtep_sec_05_1 Q_Mtep_sec_06_1 Q_Mtep_sec_07_1 Q_Mtep_sec_08_1 Q_Mtep_sec_09_1 Q_Mtep_sec_10_1 _
+Q_Mtep_sec_11_1 Q_Mtep_sec_12_1 Q_Mtep_sec_13_1 Q_Mtep_sec_14_1 Q_Mtep_sec_15_1 Q_Mtep_sec_16_1 Q_Mtep_sec_17_1 Q_Mtep_sec_18_1 Q_Mtep_sec_19_1 Q_Mtep_sec_20_1 _
+Q_Mtep_sec_01_2 Q_Mtep_sec_02_2 Q_Mtep_sec_03_2 Q_Mtep_sec_04_2 Q_Mtep_sec_05_2 Q_Mtep_sec_06_2 Q_Mtep_sec_07_2 Q_Mtep_sec_08_2 Q_Mtep_sec_09_2 Q_Mtep_sec_10_2 _
+ Q_Mtep_sec_11_2 Q_Mtep_sec_12_2 Q_Mtep_sec_13_2 Q_Mtep_sec_14_2 Q_Mtep_sec_15_2 Q_Mtep_sec_16_2 Q_Mtep_sec_17_2 Q_Mtep_sec_18_2 Q_Mtep_sec_19_2 Q_Mtep_sec_20_2
+
+
+
+                                                                                                                                                                                                                                         
+'Reporting_4.sheet(t)
+'show Reporting_4
+
+
+group Reporting_5 100*(GDP_2/GDP_0-1) 100*((VA_2-VA_20_2)/(VA_0-VA_20_0)-1) 100*((CH_2-CH_0)/GDP_0) 100*((CH_03_2-CH_03_0)/GDP_0) _
+               100*((G_2-G_0)/GDP_0) 100*((I_2-I_0)/GDP_0) 100*((DS_2-DS_0)/GDP_0) 100*((X_2-X_0)/GDP_0)-100*((M_2-M_0)/GDP_0) _
+               100*((CH_2-CH_13_2-(CH_0-CH_13_0))/GDP_0) 100*((I_2+CH_13_2-(I_0+CH_13_0))/GDP_0) 100*((I_2-IA_20_2-(I_0-IA_20_0))/GDP_0) 100*((CH_13_2-CH_13_0)/GDP_0) 100*((IA_20_2-IA_20_0)/GDP_0) _
+               100*(CH_2/CH_0-1) 100*(CH_03_2/CH_03_0-1) 100*(G_2/G_0-1) 100*(I_2/I_0-1) 100*((I_2-IA_20_2)/(I_0-IA_20_0)-1) 100*(X_2/X_0-1) 100*(M_2/M_0-1) _
+              100*((CH_2-CH_13_2)/(CH_0-CH_13_0)-1) 100*((I_2+CH_13_2)/(I_0+CH_13_0)-1) 100*((CH_13_2)/(CH_13_0)-1) 100*((IA_20_2)/(IA_20_0)-1) _
+      100*(DISPINC_VAL_2/DISPINC_VAL_0-1) 100*(DISPINC_VAL_2/DISPINC_VAL_0*PCH_0/PCH_2-1) 100*(DISPINC_VAL_2/DISPINC_VAL_0*L_0/L_2-1) _
+      100*(DISPINC_VAL_2/DISPINC_VAL_0*L_0/L_2*PCH_0/PCH_2-1) 100*((dispinc_val_H01_2-(PCH_2*CH_2-pch_13_2*ch_13_2))/dispinc_val_H01_2-(dispinc_val_H01_0-(PCH_0*CH_0-pch_13_0*ch_13_0))/dispinc_val_H01_0) 100*(PCH_2/PCH_0-1) 100*(PY_2/PY_0-1) 100*(PX_2/PX_0-1) _
+      100*(PM_2/PM_0-1) 100*(W_2/W_0-1) 100*((W_2/PCH_2)/(W_0/PCH_0)-1) 100*(CL_2/CL_0-1) 100*((CL_2/PVA_2)/(CL_0/PVA_0)-1) ((L_2/L_0)-1)*100 _
+      L_2-L_0 100*(UNR_TOT_2-UNR_TOT_0) 100*(DC_VAL_2/(GDP_2*PGDP_2)-DC_VAL_0/(GDP_0*PGDP_0)) _
+      100*((M_21_2*PM_21_2-X_21_2*PX_21_2+M_22_2*PM_22_2-X_22_2*PX_22_2+M_23_2*PM_23_2-X_23_2*PX_23_2+M_24_2*PM_24_2-X_24_2*PX_24_2)/(GDP_2*PGDP_2))-100*((M_21_0*PM_21_0-X_21_0*PX_21_0+M_22_0*PM_22_0-X_22_0*PX_22_0+M_23_0*PM_23_0-X_23_0*PX_23_0+M_24_0*PM_24_0-X_24_0*PX_24_0)/(GDP_0*PGDP_0)) 100*((-SP_G_VAL_2)/(GDP_2*PGDP_2)-(-SP_G_VAL_0)/(GDP_0*PGDP_0)) _
+      100*((-BF_G_VAL_2)/(GDP_2*PGDP_2)-(-BF_G_VAL_0)/(GDP_0*PGDP_0)) (DEBT_G_VAL_2/(PGDP_2*GDP_2)-DEBT_G_VAL_0/(PGDP_0*GDP_0))*100 _ 
+DEP_val_2 REC_VAL_2 (0-BF_G_VAL_2) DEBT_G_VAL_2 REC_TCO_VAL_2 ENERT_22_2*PENERT_22_2 ENERT_24_2*PENERT_24_2 ENERT_23_2*PENERT_23_2 ENERT_21_2*PENERT_21_2 TCO_VAL_HH_2 _
+TCO_VAL_HH_21_H01_2+TCO_VAL_HH_24_H01_2+TCO_VAL_HH_22_H01_2*(Q_MTEP_H_BUIL_22_2)/(Q_MTEP_H_BUIL_22_2+Q_MTEP_H_AUTO_22_2) _
+TCO_VAL_HH_22_H01_2*(Q_MTEP_H_BUIL_22_2)/(Q_MTEP_H_BUIL_22_2+Q_MTEP_H_AUTO_22_2) TCO_VAL_HH_24_H01_2 TCO_VAL_HH_21_H01_2 _
+TCO_VAL_HH_22_H01_2*(Q_MTEP_H_AUTO_22_2)/(Q_MTEP_H_BUIL_22_2+Q_MTEP_H_AUTO_22_2) TCO_VAL_SEC_2 REC_TCO_VAL_ETS_2  _
+TCO_VAL_22_04_2+TCO_VAL_22_05_2+TCO_VAL_22_06_2+TCO_VAL_22_07_2+TCO_VAL_22_08_2+TCO_VAL_22_09_2+TCO_VAL_22_10_2+TCO_VAL_22_18_2+TCO_VAL_22_21_2+tco_val_22_2201_2+tco_val_22_2202_2+TCO_VAL_22_2301_2+TCO_VAL_22_2302_2+TCO_VAL_22_2303_2+TCO_VAL_22_2304_2+TCO_VAL_22_2305_2+TCO_VAL_22_2306_2+TCO_VAL_22_2307_2+TCO_VAL_22_2308_2+TCO_VAL_22_2401_2+TCO_VAL_22_2402_2+TCO_VAL_22_2403_2+TCO_VAL_22_2404_2+TCO_VAL_22_2405_2+TCO_VAL_22_2406_2 _ 	
+TCO_VAL_24_04_2+TCO_VAL_24_05_2+TCO_VAL_24_06_2+TCO_VAL_24_07_2+TCO_VAL_24_08_2+TCO_VAL_24_09_2+TCO_VAL_24_10_2+TCO_VAL_24_18_2+TCO_VAL_24_21_2+tco_val_24_2201_2+tco_val_24_2202_2+TCO_VAL_24_2301_2+TCO_VAL_24_2302_2+TCO_VAL_24_2303_2+TCO_VAL_24_2304_2+TCO_VAL_24_2305_2+TCO_VAL_24_2306_2+TCO_VAL_24_2307_2+TCO_VAL_24_2308_2+TCO_VAL_24_2401_2+TCO_VAL_24_2402_2+TCO_VAL_24_2403_2+TCO_VAL_24_2404_2+TCO_VAL_24_2405_2+TCO_VAL_24_2406_2 _	
+TCO_VAL_21_04_2+TCO_VAL_21_05_2+TCO_VAL_21_06_2+TCO_VAL_21_07_2+TCO_VAL_21_08_2+TCO_VAL_21_09_2+TCO_VAL_21_10_2+TCO_VAL_21_18_2+TCO_VAL_21_21_2+tco_val_21_2201_2+tco_val_21_2202_2+TCO_VAL_21_2301_2+TCO_VAL_21_2302_2+TCO_VAL_21_2303_2+TCO_VAL_21_2304_2+TCO_VAL_21_2305_2+TCO_VAL_21_2306_2+TCO_VAL_21_2307_2+TCO_VAL_21_2308_2+TCO_VAL_21_2401_2+TCO_VAL_21_2402_2+TCO_VAL_21_2403_2+TCO_VAL_21_2404_2+TCO_VAL_21_2405_2+TCO_VAL_21_2406_2 _
+REC_TCO_VAL_NETS_2 _
+TCO_VAL_22_01_2+TCO_VAL_22_02_2+TCO_val_22_03_2+TCO_VAL_22_11_2+TCO_VAL_22_12_2+TCO_VAL_22_13_2 _
+TCO_VAL_24_01_2+TCO_VAL_24_02_2+TCO_val_24_03_2+TCO_VAL_24_11_2+TCO_VAL_24_12_2+TCO_VAL_24_13_2 _
+TCO_VAL_21_01_2+TCO_VAL_21_02_2+TCO_val_21_03_2+TCO_VAL_21_11_2+TCO_VAL_21_12_2+TCO_VAL_21_13_2 _
+TCO_VAL_SEC_14_2+TCO_VAL_SEC_15_2+TCO_VAL_SEC_16_2+TCO_VAL_SEC_17_2+TCO_VAL_SEC_19_2+TCO_VAL_SEC_20_2	TCO_VAL_22_14_2+TCO_VAL_22_15_2+TCO_VAL_22_16_2+TCO_VAL_22_17_2+TCO_VAL_22_19_2+TCO_VAL_22_20_2 _ 
+TCO_VAL_24_14_2+TCO_VAL_24_15_2+TCO_VAL_24_16_2+TCO_VAL_24_17_2+TCO_VAL_24_19_2+TCO_VAL_24_20_2 _
+TCO_VAL_21_14_2+TCO_VAL_21_15_2+TCO_VAL_21_16_2+TCO_VAL_21_17_2+TCO_VAL_21_19_2+TCO_VAL_21_20_2 _
+DEP_val_0 REC_VAL_0 (0-BF_G_VAL_0) DEBT_G_VAL_0 REC_TCO_VAL_0	ENERT_22_0*PENERT_22_0	ENERT_24_0*PENERT_24_0	ENERT_23_0*PENERT_23_0 ENERT_21_0*PENERT_21_0 _
+TCO_VAL_HH_0 _
+TCO_VAL_HH_21_H01_0+TCO_VAL_HH_24_H01_0+TCO_VAL_HH_22_H01_0*(Q_MTEP_H_BUIL_22_0)/(Q_MTEP_H_BUIL_22_0+Q_MTEP_H_AUTO_22_0) _
+TCO_VAL_HH_22_H01_0*(Q_MTEP_H_BUIL_22_0)/(Q_MTEP_H_BUIL_22_0+Q_MTEP_H_AUTO_22_0) _
+TCO_VAL_HH_24_H01_0 _
+TCO_VAL_HH_21_H01_0 _
+TCO_VAL_HH_22_H01_0*(Q_MTEP_H_AUTO_22_0)/(Q_MTEP_H_BUIL_22_0+Q_MTEP_H_AUTO_22_0) _
+TCO_VAL_SEC_0 REC_TCO_VAL_ETS_0 _
+TCO_VAL_22_04_0+TCO_VAL_22_05_0+TCO_VAL_22_06_0+TCO_VAL_22_07_0+TCO_VAL_22_08_0+TCO_VAL_22_09_0+TCO_VAL_22_10_0+TCO_VAL_22_18_0+TCO_VAL_22_21_0+tco_val_22_2201_0+tco_val_22_2202_0+TCO_VAL_22_2301_0+TCO_VAL_22_2302_0+TCO_VAL_22_2303_0+TCO_VAL_22_2304_0+TCO_VAL_22_2305_0+TCO_VAL_22_2306_0+TCO_VAL_22_2307_0+TCO_VAL_22_2308_0+TCO_VAL_22_2401_0+TCO_VAL_22_2402_0+TCO_VAL_22_2403_0+TCO_VAL_22_2404_0+TCO_VAL_22_2405_0+TCO_VAL_22_2406_0 _
+TCO_VAL_24_04_0+TCO_VAL_24_05_0+TCO_VAL_24_06_0+TCO_VAL_24_07_0+TCO_VAL_24_08_0+TCO_VAL_24_09_0+TCO_VAL_24_10_0+TCO_VAL_24_18_0+TCO_VAL_24_21_0+tco_val_24_2201_0+TCO_VAL_24_2202_0+TCO_VAL_24_2301_0+TCO_VAL_24_2302_0+TCO_VAL_24_2303_0+TCO_VAL_24_2304_0+TCO_VAL_24_2305_0+TCO_VAL_24_2306_0+TCO_VAL_24_2307_0+TCO_VAL_24_2308_0+TCO_VAL_24_2401_0+TCO_VAL_24_2402_0+TCO_VAL_24_2403_0+TCO_VAL_24_2404_0+TCO_VAL_24_2405_0+TCO_VAL_24_2406_0 _
+TCO_VAL_21_04_0+TCO_VAL_21_05_0+TCO_VAL_21_06_0+TCO_VAL_21_07_0+TCO_VAL_21_08_0+TCO_VAL_21_09_0+TCO_VAL_21_10_0+TCO_VAL_21_18_0+TCO_VAL_21_21_0+tco_val_21_2201_0+tco_val_21_2202_0+TCO_VAL_21_2301_0+TCO_VAL_21_2302_0+TCO_VAL_21_2303_0+TCO_VAL_21_2304_0+TCO_VAL_21_2305_0+TCO_VAL_21_2306_0+TCO_VAL_21_2307_0+TCO_VAL_21_2308_0+TCO_VAL_21_2401_0+TCO_VAL_21_2402_0+TCO_VAL_21_2403_0+TCO_VAL_21_2404_0+TCO_VAL_21_2405_0+TCO_VAL_21_2406_0 _
+REC_TCO_VAL_NETS_0 _
+TCO_VAL_22_01_0+TCO_VAL_22_02_0+TCO_val_22_03_0+TCO_VAL_22_11_0+TCO_VAL_22_12_0+TCO_VAL_22_13_0 _
+TCO_VAL_24_01_0+TCO_VAL_24_02_0+TCO_val_24_03_0+TCO_VAL_24_11_0+TCO_VAL_24_12_0+TCO_VAL_24_13_0 _
+TCO_VAL_21_01_0+TCO_VAL_21_02_0+TCO_val_21_03_0+TCO_VAL_21_11_0+TCO_VAL_21_12_0+TCO_VAL_21_13_0 _ 
+TCO_VAL_SEC_14_0+TCO_VAL_SEC_15_0+TCO_VAL_SEC_16_0+TCO_VAL_SEC_17_0+TCO_VAL_SEC_19_0+TCO_VAL_SEC_20_0	TCO_VAL_22_14_0+TCO_VAL_22_15_0+TCO_VAL_22_16_0+TCO_VAL_22_17_0+TCO_VAL_22_19_0+TCO_VAL_22_20_0 TCO_VAL_24_14_0+TCO_VAL_24_15_0+TCO_VAL_24_16_0+TCO_VAL_24_17_0+TCO_VAL_24_19_0+TCO_VAL_24_20_0 _ 
+TCO_VAL_21_14_0+TCO_VAL_21_15_0+TCO_VAL_21_16_0+TCO_VAL_21_17_0+TCO_VAL_21_19_0+TCO_VAL_21_20_0 _
+EMS_TOT_2 _
+EMS_HH_22_2+EMS_SEC_22_01_2+EMS_SEC_22_02_2+EMS_SEC_22_03_2+EMS_SEC_22_04_2+EMS_SEC_22_05_2+EMS_SEC_22_06_2+EMS_SEC_22_07_2+EMS_SEC_22_08_2+EMS_SEC_22_09_2+EMS_SEC_22_12_2+EMS_SEC_22_13_2+EMS_SEC_22_14_2+EMS_SEC_22_15_2+EMS_SEC_22_16_2+EMS_SEC_22_17_2+EMS_SEC_22_18_2+EMS_SEC_22_19_2+EMS_SEC_22_20_2 EMS_HH_24_2+EMS_SEC_2401_2+EMS_SEC_24_01_2+EMS_SEC_24_02_2+EMS_SEC_24_03_2+EMS_SEC_24_04_2+EMS_SEC_24_05_2+EMS_SEC_24_06_2+EMS_SEC_24_07_2+EMS_SEC_24_08_2+EMS_SEC_24_09_2+EMS_SEC_24_10_2+EMS_SEC_24_11_2+EMS_SEC_24_12_2+EMS_SEC_24_13_2+EMS_SEC_24_14_2+EMS_SEC_24_15_2+EMS_SEC_24_16_2+EMS_SEC_24_17_2+EMS_SEC_24_18_2+EMS_SEC_24_19_2+EMS_SEC_24_20_2 _
+       EMS_SEC_2302_2+EMS_SEC_2303_2+EMS_SEC_2304_2 EMS_HH_21_2+EMS_SEC_21_05_2+EMS_SEC_21_06_2+EMS_SEC_21_07_2+EMS_SEC_21_08_2+EMS_SEC_21_10_2+EMS_SEC_21_12_2+EMS_SEC_21_19_2+EMS_SEC_21_20_2 EMS_DC_05_2+EMS_DC_04_2 EMS_HH_21_2+EMS_HH_24_2+EMS_HH_22_2*(@ELEM(PENER_BUIL_H01_22,2006)*ENER_BUIL_H01_22_2)/EXP_22_H01_2 _
+       EMS_HH_22_2*(EXP_AUTO_H01_22_2/EXP_22_H01_2) _
+       EMS_SEC_04_2+EMS_SEC_05_2+EMS_SEC_06_2+EMS_SEC_07_2+EMS_SEC_08_2+EMS_SEC_09_2+EMS_SEC_10_2+EMS_SEC_18_2+EMS_SEC_21_19_2+EMS_SEC_21_20_2+EMS_SEC_2201_2+EMS_SEC_2302_2+EMS_SEC_2303_2+EMS_SEC_2304_2+EMS_SEC_2401_2+EMS_DC_04_2+EMS_DC_05_2 _
+        EMS_SEC_01_2+EMS_SEC_02_2+EMS_SEC_03_2+EMS_SEC_11_2+EMS_SEC_12_2+EMS_SEC_13_2 _             
+        EMS_SEC_14_2+EMS_SEC_15_2+EMS_SEC_16_2+EMS_SEC_17_2+EMS_SEC_19_2+EMS_SEC_20_2 _               
+        EMS_TOT_0 EMS_HH_22_0+EMS_SEC_22_01_0+EMS_SEC_22_02_0+EMS_SEC_22_03_0+EMS_SEC_22_04_0+EMS_SEC_22_05_0+EMS_SEC_22_06_0+EMS_SEC_22_07_0+EMS_SEC_22_08_0+EMS_SEC_22_09_0+EMS_SEC_22_12_0+EMS_SEC_22_13_0+EMS_SEC_22_14_0+EMS_SEC_22_15_0+EMS_SEC_22_16_0+EMS_SEC_22_17_0+EMS_SEC_22_18_0+EMS_SEC_22_19_0+EMS_SEC_22_20_0 EMS_HH_24_0+EMS_SEC_2401_0+EMS_SEC_24_01_0+EMS_SEC_24_02_0+EMS_SEC_24_03_0+EMS_SEC_24_04_0+EMS_SEC_24_05_0+EMS_SEC_24_06_0+EMS_SEC_24_07_0+EMS_SEC_24_08_0+EMS_SEC_24_09_0+EMS_SEC_24_10_0+EMS_SEC_24_11_0+EMS_SEC_24_12_0+EMS_SEC_24_13_0+EMS_SEC_24_14_0+EMS_SEC_24_15_0+EMS_SEC_24_16_0+EMS_SEC_24_17_0+EMS_SEC_24_18_0+EMS_SEC_24_19_0+EMS_SEC_24_20_0 _
+        EMS_SEC_2302_0+EMS_SEC_2303_0+EMS_SEC_2304_0 EMS_HH_21_0+EMS_SEC_21_05_0+EMS_SEC_21_06_0+EMS_SEC_21_07_0+EMS_SEC_21_08_0+EMS_SEC_21_10_0+EMS_SEC_21_12_0+EMS_SEC_21_19_0+EMS_SEC_21_20_0 _
+       EMS_DC_05_0+EMS_DC_04_0 _
+       EMS_HH_21_0+EMS_HH_24_0+EMS_HH_22_0*(@ELEM(PENER_BUIL_H01_22_0,2006)*ENER_BUIL_H01_22_0)/EXP_22_H01_0 _
+       EMS_HH_22_0*(EXP_AUTO_H01_22_0/EXP_22_H01_0) _
+       EMS_SEC_04_0+EMS_SEC_05_0+EMS_SEC_06_0+EMS_SEC_07_0+EMS_SEC_08_0+EMS_SEC_09_0+EMS_SEC_10_0+EMS_SEC_18_0+EMS_SEC_21_19_0+EMS_SEC_21_20_0+EMS_SEC_2201_0+EMS_SEC_2302_0+EMS_SEC_2303_0+EMS_SEC_2304_0+EMS_SEC_2401_0+EMS_DC_04_0+EMS_DC_05_0 _
+       EMS_SEC_01_0+EMS_SEC_02_0+EMS_SEC_03_0+EMS_SEC_11_0+EMS_SEC_12_0+EMS_SEC_13_0 _
+       EMS_SEC_14_0+EMS_SEC_15_0+EMS_SEC_16_0+EMS_SEC_17_0+EMS_SEC_19_0+EMS_SEC_20_0 ER_TOTAL_2 _
+       ER_TRANS_PRIVATE_2+ER_TRANS_PUBLIC_2 ER_TRANS_PRIVATE_2 ER_TRANS_PRIVATE_OIL_2 ER_TRANS_PRIVATE_ELEC_2 ER_TRANS_PUBLIC_2 ER_TRANS_PUBLIC_OIL_2 _
+       ER_TRANS_PUBLIC_ELEC_2 ER_RESIDENTIAL_2 ER_RESIDENTIAL_OIL_2 ER_RESIDENTIAL_ELEC_2 ER_RESIDENTIAL_GAS_2 ER_AGRICULTURE_2 ER_AGRICULTURE_OIL_2 _
+       ER_AGRICULTURE_ELEC_2 ER_INDUS_2 ER_INDUS_OIL_2 ER_INDUS_ELEC_2 ER_INDUS_GAS_2 ER_INDUS_COAL_2 ER_TERTIARY_2 ER_TERTIARY_OIL_2 ER_TERTIARY_ELEC_2 ER_TERTIARY_GAS_2 ER_OIL_2 ER_GAS_2 ER_COAL_2 ER_ELEC_2 ER_ELEC_2301_2 ER_ELEC_2302_2 ER_ELEC_2303_2 _
+        ER_ELEC_2304_2 ER_ELEC_2305_2 ER_ELEC_2306_2 ER_ELEC_2307_2 ER_ELEC_2308_2 ER_TOTAL_0 ER_TRANS_PRIVATE_0+ER_TRANS_PUBLIC_0 ER_TRANS_PRIVATE_0 ER_TRANS_PRIVATE_OIL_0 ER_TRANS_PRIVATE_ELEC_0 ER_TRANS_PUBLIC_0 ER_TRANS_PUBLIC_OIL_0 ER_TRANS_PUBLIC_ELEC_0 ER_RESIDENTIAL_0 ER_RESIDENTIAL_OIL_0 ER_RESIDENTIAL_ELEC_0 ER_RESIDENTIAL_GAS_0 ER_AGRICULTURE_0 ER_AGRICULTURE_OIL_0 ER_AGRICULTURE_ELEC_0 ER_INDUS_0 ER_INDUS_OIL_0 ER_INDUS_ELEC_0 ER_INDUS_GAS_0 ER_INDUS_COAL_0 ER_TERTIARY_0 ER_TERTIARY_OIL_0 ER_TERTIARY_ELEC_0 ER_TERTIARY_GAS_0 ER_OIL_0 _
+        ER_GAS_0 ER_COAL_0 ER_ELEC_0 ER_ELEC_2301_0 ER_ELEC_2302_0 ER_ELEC_2303_0 ER_ELEC_2304_0 ER_ELEC_2305_0 ER_ELEC_2306_0 ER_ELEC_2307_0 ER_ELEC_2308_0 ENER_H01_2 _
+        @ELEM(PENER_BUIL_H01_2,2006)*ENER_BUIL_H01_2 EXP_AUTO_H01_2 ENER_H01 @ELEM(PENER_BUIL_H01,2006)*ENER_BUIL_H01 EXP_AUTO_H01 KM_auto_H01_2 _
+        KM_TRAVELER_18_H01_2 KM_TRAV_AUTO_LD_H01_2 KM_TRAV_AUTO_CD_H01_2 KM_TRAVELER_14_H01_2 KM_TRAVELER_15_H01_2 KM_TRAVELER_CD_H01_2 KM_TRAVELER_LD_H01_2 _
+        KM_AUTO_H01_0 KM_TRAVELER_18_H01_0 KM_TRAV_AUTO_LD_H01_0 KM_TRAV_AUTO_CD_H01_0 KM_TRAVELER_14_H01_0 _
+        KM_TRAVELER_15_H01_0 KM_TRAVELER_CD_H01_0 KM_TRAVELER_LD_H01_0 _
+        ER_Auto_2 ER_AUTO_th_A_2 ER_AUTO_th_B_2 ER_AUTO_th_C_2 ER_AUTO_th_D_2 ER_AUTO_th_E_2 ER_AUTO_th_F_2 ER_AUTO_th_G_2 _
+        ER_AUTO_elec_A_2 ER_AUTO_elec_B_2 ER_AUTO_elec_C_2 ER_AUTO_elec_D_2 ER_AUTO_elec_E_2 ER_AUTO_elec_F_2 ER_AUTO_elec_G_2 ER_Auto_Coal_2 ER_auto_th_2 ER_Auto_Elec_2 ER_Auto_Gas_2 _
+        ER_NEWAUTO_2 ER_NEWAUTO_th_2 ER_newauto_th_A_2 ER_newauto_th_B_2 ER_newauto_th_C_2 ER_newauto_th_D_2 ER_newauto_th_E_2 ER_newauto_th_F_2  ER_newauto_th_G_2  _
+        ER_NEWAUTO_elec_2 ER_NEWAUTO_elec_A_2 ER_NEWAUTO_elec_B_2 ER_NEWAUTO_elec_C_2 ER_NEWAUTO_elec_D_2 ER_NEWAUTO_elec_E_2 ER_NEWAUTO_elec_F_2 ER_NEWAUTO_elec_G_2 _
+        ER_Auto_0 ER_AUTO_th_A_0 ER_AUTO_th_B_0 ER_AUTO_th_C_0 ER_AUTO_th_D_0 ER_AUTO_th_E_0 ER_AUTO_th_F_0 ER_AUTO_th_G_0 ER_AUTO_elec_A_0 ER_AUTO_elec_B_0 ER_AUTO_elec_C_0 ER_AUTO_elec_D_0 ER_AUTO_elec_E_0 ER_AUTO_elec_F_0 ER_AUTO_elec_G_0 ER_Auto_Coal_0 ER_auto_th_0 ER_Auto_Elec_0 ER_Auto_Gas_0 _
+        ER_NEWAUTO_0 ER_NEWAUTO_th_0 ER_newauto_th_A_0 ER_newauto_th_B_0 ER_newauto_th_C_0 ER_newauto_th_D_0 ER_newauto_th_E_0 ER_newauto_th_F_0 _
+        ER_NEWAUTO_elec_0 ER_NEWAUTO_elec_A_0 ER_NEWAUTO_elec_B_0 ER_NEWAUTO_elec_C_0 ER_NEWAUTO_elec_D_0 ER_NEWAUTO_elec_E_0 ER_NEWAUTO_elec_F_0 _
+        ER_BUIL_2 ER_BUIL_A_2 ER_BUIL_B_2 ER_BUIL_C_2 ER_BUIL_D_2 ER_BUIL_E_2 ER_BUIL_F_2 ER_BUIL_G_2  SUB_REHAB_VAL_2 tax_cr_19_2 ER_BUIL_0 _
+        ER_BUIL_A_0 ER_BUIL_B_0 ER_BUIL_C_0 ER_BUIL_D_0 ER_BUIL_E_0 ER_BUIL_F_0 ER_BUIL_G_0 SUB_REHAB_VAL_0 tax_cr_19_0 _
+	  pch_2 pch_0 pgdp_2 pgdp_0 gdp_2 gdp_0 _
+       L_01_0	L_02_0	L_03_0	L_04_0	L_05_0	L_06_0	L_07_0	L_08_0	L_09_0	L_10_0	L_11_0 L_12_0 L_13_0 L_14_0 L_15_0	L_16_0	L_17_0	L_18_0	L_19_0	L_20_0	L_21_0 _
+      L_2201_0	L_2202_0	L_2301_0	L_2302_0	L_2303_0	L_2304_0	L_2305_0	L_2306_0	L_2307_0 L_2308_0 L_2401_0 L_2402_0 L_2403_0 L_2404_0 L_2405_0 _
+	 L_2406_0	L_01_2	L_02_2	L_03_2	L_04_2	L_05_2	L_06_2	L_07_2	L_08_2	L_09_2	L_10_2	L_11_2	L_12_2	L_13_2	L_14_2	L_15_2	L_16_2	L_17_2	L_18_2	L_19_2	L_20_2	L_21_2 _ 
+      L_2201_2	L_2202_2	L_2301_2	L_2302_2	L_2303_2	L_2304_2	L_2305_2	L_2306_2	L_2307_2 L_2308_2 _
+      L_2401_2	L_2402_2	L_2403_2	L_2404_2	L_2405_2	L_2406_2 _ 	
+      VA_01_0	VA_02_0	VA_03_0	VA_04_0	VA_05_0	VA_06_0	VA_07_0	VA_08_0	VA_09_0 VA_10_0 VA_11_0 VA_12_0 VA_13_0 VA_14_0 VA_15_0 VA_16_0 VA_17_0 VA_18_0 VA_19_0 VA_20_0 VA_21_0 _
+      VA_2201_0 VA_2202_0 VA_2301_0 VA_2302_0 VA_2303_0 VA_2304_0	VA_2305_0 VA_2306_0 VA_2307_0 VA_2308_0 _
+      VA_2401_0 VA_2402_0 VA_2403_0	 VA_2404_0 VA_2405_0 VA_2406_0 _	
+      VA_01_2	VA_02_2	VA_03_2 VA_04_2 VA_05_2 VA_06_2 VA_07_2 VA_08_2 VA_09_2 VA_10_2 VA_11_2 VA_12_2 VA_13_2 VA_14_2 VA_15_2 VA_16_2 VA_17_2 VA_18_2 VA_19_2 VA_20_2 VA_21_2 _
+      VA_2201_2 VA_2202_2 VA_2301_2 VA_2302_2 VA_2303_2 VA_2304_2	VA_2305_2	 VA_2306_2 VA_2307_2 VA_2308_2 _
+      VA_2401_2 VA_2402_2 VA_2403_2 VA_2404_2 VA_2405_2 VA_2406_2 _
+TTCO_VOL_21_2 TTCO_VOL_22_2 TTCO_VOL_24_2 TTCO_VOL_21_0 TTCO_VOL_22_0 TTCO_VOL_24_0 DISPINC_VAL_2 DISPINC_VAL_0 _
+(gdpter_2/gdpbis_2-1)*100 (gdpter_0/gdpbis_0-1)*100 _
+IA_0 IA_01_0 IA_02_0 IA_03_0 IA_04_0 IA_05_0 IA_06_0 IA_07_0 IA_08_0 IA_09_0 IA_10_0 IA_11_0 IA_12_0 IA_13_0 IA_13_20_0 IA_14_0 IA_15_0  IA_16_0 IA_17_0  IA_18_0 IA_19_0 IA_20_0 IA_21_0 _
+IA_2201_0 IA_2202_0 IA_2301_0 IA_2302_0 IA_2303_0 IA_2304_0 IA_2305_0 IA_2306_0 IA_2307_0 IA_2308_0 IA_2401_0 IA_2402_0 IA_2403_0 IA_2404_0 IA_2405_0 IA_2406_0   _
+REHAB_VAL_0 NEWBUIL_H01_0 PNEWBUIL_H01_0 PREHAB_H01_0 REHAB_H01_0 PEXP_13_H01_0 CH_03_0 PGDP_0 _
+IA_2 IA_01_2 IA_02_2 IA_03_2 IA_04_2 IA_05_2 IA_06_2 IA_07_2 IA_08_2 IA_09_2 IA_10_2 IA_11_2 IA_12_2 IA_13_2 IA_13_20_2 IA_14_2 IA_15_2 IA_16_2 IA_17_2 IA_18_2 IA_19_2 IA_20_2 IA_21_2 _
+IA_2201_2 IA_2202_2 IA_2301_2 IA_2302_2 IA_2303_2 IA_2304_2 IA_2305_2 IA_2306_2 IA_2307_2 IA_2308_2 IA_2401_2 IA_2402_2 IA_2403_2 IA_2404_2 IA_2405_2 IA_2406_2  _
+REHAB_VAL_2 NEWBUIL_H01_2 PNEWBUIL_H01_2 PREHAB_H01_2 REHAB_H01_2 PEXP_13_H01_2 CH_03_2 PGDP_2 _
+CH_01_2 CH_02_2 CH_03_2 CH_04_2 CH_05_2 CH_06_2 CH_07_2 CH_08_2 CH_09_2 CH_10 CH_11_2 CH_12_2 CH_13_2 CH_14_2 _
+CH_15_2 CH_16_2 CH_17_2 CH_18_2 CH_19_2 CH_20_2 CH_21_2 CH_22_2 CH_23_2 CH_24_2 _ 
+CH_01_0 CH_02_0 CH_03_0 CH_04_0 CH_05_0 CH_06_0 CH_07_0 CH_08_0 CH_09_0 CH_10 CH_11_0 CH_12_0 CH_13_0 CH_14_0 _
+CH_15_0 CH_16_0 CH_17_0 CH_18_0 CH_19_0 CH_20_0 CH_21_0 CH_22_0 CH_23_0 CH_24_0 _
+PCH_01_2 PCH_02_2 PCH_03_2 PCH_04_2 PCH_05_2 PCH_06_2 PCH_07_2 PCH_08_2 PCH_09_2 PCH_10 _
+PCH_11_2 PCH_12_2 PCH_13_2 PCH_14_2 PCH_15_2 PCH_16_2 PCH_17_2 PCH_18_2 PCH_19_2 PCH_20_2 _
+PCH_21_2 PCH_22_2 PCH_23_2 PCH_24_2 PCH_01_0 PCH_02_0 PCH_03_0 PCH_04_0 PCH_05_0 PCH_06_0 _ 
+PCH_07_0 PCH_08_0 PCH_09_0 PCH_10 PCH_11_0 PCH_12_0 PCH_13_0 PCH_14_0 PCH_15_0 PCH_16_0 _ 
+PCH_17_0 PCH_18_0 PCH_19_0 PCH_20_0 PCH_21_0 PCH_22_0 PCH_23_0 PCH_24_0 PENER_BUIL_H01_2 PENER_BUIL_H01_0 ENER_BUIL_H01_2 ENER_BUIL_H01_0 pexp_auto_h01_2 pexp_auto_h01_0 _
+exp_mobauto_val_h01_2 exp_mobauto_val_h01_0 exp_housing_val_h01_2 exp_housing_val_h01_0 pop_tot _
+I_MDE_01_0 I_MDE_02_0 I_MDE_03_0 I_MDE_04_0	I_MDE_05_0 I_MDE_06_0 I_MDE_07_0 I_MDE_08_0	I_MDE_09_0 I_MDE_10_0 I_MDE_11_0 _
+ I_MDE_12_0 I_MDE_13_0 I_MDE_19_0 I_MDE_20_0 I_MDE_01_2 I_MDE_02_2 I_MDE_03_2 I_MDE_04_2 I_MDE_05_2 I_MDE_06_2 I_MDE_07_2 I_MDE_08_2 I_MDE_09_2 I_MDE_10_2 I_MDE_11_2 I_MDE_12_2 I_MDE_13_2  _
+I_MDE_19_2 I_MDE_20_2 NDI_ADEB_VOL_0 NDI_ADEB_VOL_2 INV_Road PIA_13_19_2 PIA_13_19_0 PIA_13_20_0 PIA_13_20_2 PIA_20_2 PIA_20_0 PIA_15_2 PIA_15_0 CSPE_0 CSPE_2 _
+Carbon_foot_0 Carbon_foot_2 PSUBD_15_2*SUBD_15_2 CU_MWH_PGDP_21_0 CU_MWH_PGDP_22_0 CU_MWH_PGDP_23_0  CU_MWH_PGDP_24_0 CU_MWH_PGDP_2201_0 CU_MWH_PGDP_2202_0 CU_MWH_PGDP_2301_0 _
+CU_MWH_PGDP_2302_0 CU_MWH_PGDP_2303_0 CU_MWH_PGDP_2304_0 CU_MWH_PGDP_2305_0 CU_MWH_PGDP_2306_0 CU_MWH_PGDP_2307_0 CU_MWH_PGDP_2308_0 CU_MWH_PGDP_2401_0 CU_MWH_PGDP_2402_0 _
+CU_MWH_PGDP_2403_0 CU_MWH_PGDP_2404_0 CU_MWH_PGDP_2405_0 CU_MWH_PGDP_2406_0 CU_MWH_PGDP_21_2 CU_MWH_PGDP_22_2 CU_MWH_PGDP_23_2  CU_MWH_PGDP_24_2 CU_MWH_PGDP_2201_2 _
+CU_MWH_PGDP_2202_2 CU_MWH_PGDP_2301_2 CU_MWH_PGDP_2302_2 CU_MWH_PGDP_2303_2 CU_MWH_PGDP_2304_2 CU_MWH_PGDP_2305_2 CU_MWH_PGDP_2306_2 CU_MWH_PGDP_2307_2 CU_MWH_PGDP_2308_2 _
+CU_MWH_PGDP_2401_2 CU_MWH_PGDP_2402_2 CU_MWH_PGDP_2403_2 CU_MWH_PGDP_2404_2 CU_MWH_PGDP_2405_2 CU_MWH_PGDP_2406_2 UNR_TOT UNR_TOT_2 _
+GDP_0 CH_0 G_0 I_0+CH_13_0 I_0-IA_20_0 CH_13_0 IA_20_0 X_0 M_0 DISPINC_VAL_0/(POP_TOT*PCH_0) L_0 SP_G_VAL_0/PGDP_0 DEBT_G_VAL_0/PGDP_0 GDP_2 CH_2 G_2 I_2+CH_13_2 I_2-IA_20_2 CH_13_2 IA_20_2 X_2 M_2 DISPINC_VAL_2/(POP_TOT*PCH_2) L_2 SP_G_VAL_2/PGDP_2 DEBT_G_VAL_2/PGDP_2 _
+Exp_13_0 Exp_13_2 exp_newauto_val_h01_ca_0 exp_newauto_val_h01_cb_0 exp_newauto_val_h01_cc_0 exp_newauto_val_h01_cd_0 exp_newauto_val_h01_ce_0 exp_newauto_val_h01_cf_0 exp_newauto_val_h01_cg_0 exp_newauto_val_h01_ca_2 exp_newauto_val_h01_cb_2 exp_newauto_val_h01_cc_2 _
+exp_newauto_val_h01_cd_2 exp_newauto_val_h01_ce_2 exp_newauto_val_h01_cf_2 exp_newauto_val_h01_cg_2
+
+                                                                                                                                                                                                                                          
+'Reporting_5.sheet(t)
+'show Reporting_5
+
+
+
+ 
+group Reporting_6 REC_VAL_1 DIV_GOV_VAL_1 IR_VAL_1 AIC_VAL_1 -CL_S_20_1*L_S_20_1*PROG_L_20_1 PY_20_1*Y_20_1 PTAX_1*TAX_1 PIY_1*IY_1 PIS_1*IS_1 PCSE_TOT_1*CSE_TOT_1 PCSS_TOT_1*CSS_TOT_1 -(PE_20_1*E_20_1) -(PMAT_20_1*MAT_20_1) -(PIY_20_1*IY_20_1) REC_VAL_2 DIV_GOV_VAL_2 IR_VAL_2 AIC_VAL_2 -CL_S_20_2*L_S_20_2*PROG_L_20_2 PY_20_2*Y_20_2 PTAX_2*TAX_2 PIY_2*IY_2 PIS_2*IS_2 PCSE_TOT_2*CSE_TOT_2 PCSS_TOT_2*CSS_TOT_2 -(PE_20_2*E_20_2) -(PMAT_20_2*MAT_20_2) -(PIY_20_2*IY_20_2) DEP_VAL_1 CL_S_20_1*L_S_20_1*PROG_L_20_1 R_G_1(-1)*DEBT_G_VAL_1(-1) PRESOC_VAL_1 SUB_RENOV_VAL_1 SUB_AUTO_VAL_1 PE_20_1*E_20_1 PMAT_20_1*MAT_20_1 PIY_20_1*IY_20_1 PIA_20_1*IA_20_1 PG_1*G_1-PG_20_1*G_20_1 -(PSUB_1*SUB_1-PSUB_01_1*SUB_01_1) -(PSY_1*SY_1-PSY_01_1*SY_01_1) DEP_VAL_2 CL_S_20_2*L_S_20_2*PROG_L_20_2 R_G_2(-1)*DEBT_G_VAL_2(-1) PRESOC_VAL_2 SUB_RENOV_VAL_2 SUB_AUTO_VAL_2 PE_20_2*E_20_2 PMAT_20_2*MAT_20_2 PIY_20_2*IY_20_2 PIA_20_2*IA_20_2 PG_2*G_2-PG_20_2*G_20_2 -(PSUB_2*SUB_2-PSUB_01_2*SUB_01_2) -(PSY_2*SY_2-PSY_01_2*SY_01_2) PGDP_0 PGDP_2 GDP_0 GDP_2 INC_GOV_OTH_NET REDIS_VAL_H
+
+'Reporting_6.sheet(t)
+'show Reporting_6
+
+ 
+group Reporting_MPR SUB_RENOV_VAL_1	SUB_RENOV_VAL_2 GDP_1	GDP_2	PGDP_1	PGDP_2 GDP_1	GDP_2	PGDP_1 PGDP_2 R_sub_CEE_h01_cb_ca_1 R_sub_CEE_h01_cb_ca_2	CEE REHAB_0	REHAB_2			RENOV_VAL_0	RENOV_VAL_2			PREHAB_1	PREHAB_2 PCH_13_1	PCH_13_2 RENOV_VAL_CA_1	RENOV_VAL_CB_1	RENOV_VAL_CC_1	RENOV_VAL_CD_1	RENOV_VAL_CE_0	RENOV_VAL_CF_1	RENOV_VAL_CG_1  RENOV_VAL_CA_2	RENOV_VAL_CB_2	RENOV_VAL_CC_2	RENOV_VAL_CD_2	RENOV_VAL_CE_2	RENOV_VAL_CF_2	RENOV_VAL_CG_2 REHAB_H01_CA_CA	REHAB_H01_CA_CB	REHAB_H01_CA_CC	REHAB_H01_CA_CD	REHAB_H01_CA_CE	REHAB_H01_CA_CF	REHAB_H01_CA_CG	REHAB_H01_CB_CA_1	REHAB_H01_CC_CA_1	REHAB_H01_CC_CB_1	REHAB_H01_CD_CA_1	REHAB_H01_CD_CB_1	REHAB_H01_CD_CC_1	REHAB_H01_CE_CA_1	REHAB_H01_CE_CB_1	REHAB_H01_CE_CC_1	REHAB_H01_CE_CD_1	REHAB_H01_CF_CA_1	REHAB_H01_CF_CB_1	REHAB_H01_CF_CC_1	REHAB_H01_CF_CD_1	REHAB_H01_CF_CE_1	REHAB_H01_CG_CA_1	REHAB_H01_CG_CB_1	REHAB_H01_CG_CC_1	REHAB_H01_CG_CD_1	REHAB_H01_CG_CE_1	REHAB_H01_CG_CF_1 REHAB_H01_CA_CA	REHAB_H01_CA_CB	REHAB_H01_CA_CC	REHAB_H01_CA_CD	REHAB_H01_CA_CE	REHAB_H01_CA_CF	REHAB_H01_CA_CG	REHAB_H01_CB_CA_2	REHAB_H01_CC_CA_2	REHAB_H01_CC_CB_2	REHAB_H01_CD_CA_2	REHAB_H01_CD_CB_2	REHAB_H01_CD_CC_2	REHAB_H01_CE_CA_2	REHAB_H01_CE_CB_2	REHAB_H01_CE_CC_2	REHAB_H01_CE_CD_2	REHAB_H01_CF_CA_2	REHAB_H01_CF_CB_2	REHAB_H01_CF_CC_2	REHAB_H01_CF_CD_2	REHAB_H01_CF_CE_2	REHAB_H01_CG_CA_2	REHAB_H01_CG_CB_2	REHAB_H01_CG_CC_2	REHAB_H01_CG_CD_2	REHAB_H01_CG_CE_2	REHAB_H01_CG_CF_2 REHAB_H01_CA	REHAB_H01_CB_1	REHAB_H01_CC_1	REHAB_H01_CD_1	REHAB_H01_CE_1	REHAB_H01_CF_1	REHAB_H01_CG_1			REHAB_H01_CA	REHAB_H01_CB_2	REHAB_H01_CC_2	REHAB_H01_CD_2	REHAB_H01_CE_2	REHAB_H01_CF_2	REHAB_H01_CG_2 PREHAB_H01_CA_CA_1	PREHAB_H01_CB_CA_1	PREHAB_H01_CB_CB_1	PREHAB_H01_CC_CA_1	PREHAB_H01_CC_CB_1	PREHAB_H01_CC_CC_1	PREHAB_H01_CD_CA_1	PREHAB_H01_CD_CB_1	PREHAB_H01_CD_CC_1	PREHAB_H01_CD_CD_1	PREHAB_H01_CE_CA_1	PREHAB_H01_CE_CB_1	PREHAB_H01_CE_CC_1	PREHAB_H01_CE_CD_1	PREHAB_H01_CE_CE_1	PREHAB_H01_CF_CA_1	PREHAB_H01_CF_CB_1	PREHAB_H01_CF_CC_1	PREHAB_H01_CF_CD_1	PREHAB_H01_CF_CE_1	PREHAB_H01_CF_CF_1	PREHAB_H01_CG_CA_1	PREHAB_H01_CG_CB_1	PREHAB_H01_CG_CC_1	PREHAB_H01_CG_CD_1	PREHAB_H01_CG_CE_1	PREHAB_H01_CG_CF_1	PREHAB_H01_CG_CG_1  PREHAB_H01_CA_CA_2	PREHAB_H01_CB_CA_2	PREHAB_H01_CB_CB_2	PREHAB_H01_CC_CA_2	PREHAB_H01_CC_CB_2	PREHAB_H01_CC_CC_2	PREHAB_H01_CD_CA_2	PREHAB_H01_CD_CB_2	PREHAB_H01_CD_CC_2	PREHAB_H01_CD_CD_2	PREHAB_H01_CE_CA_2	PREHAB_H01_CE_CB_2	PREHAB_H01_CE_CC_2	PREHAB_H01_CE_CD_2	PREHAB_H01_CE_CE_2	PREHAB_H01_CF_CA_2	PREHAB_H01_CF_CB_2	PREHAB_H01_CF_CC_2	PREHAB_H01_CF_CD_2	PREHAB_H01_CF_CE_2	PREHAB_H01_CF_CF_2	PREHAB_H01_CG_CA_2	PREHAB_H01_CG_CB_2	PREHAB_H01_CG_CC_2	PREHAB_H01_CG_CD_2	PREHAB_H01_CG_CE_2	PREHAB_H01_CG_CF_2	PREHAB_H01_CG_CG_2   BUIL_CA_1	BUIL_CB_1	BUIL_CC_1	BUIL_CD_1	BUIL_CE_1	BUIL_CF_1	BUIL_CG_1 BUIL_CA_2	BUIL_CB_2	BUIL_CC_2	BUIL_CD_2	BUIL_CE_2	BUIL_CF_2	BUIL_CG_2 BUIL_1	BUIL_2 CH_13_2	CH_13_1 EXP_REHAB_VAL_1	EXP_REHAB_VAL_2  ENER_BUIL_1	ENER_BUIL_2 ENER_BUIL_21_1	ENER_BUIL_22_1 ENER_BUIL_23_1	ENER_BUIL_24_1	 ENER_BUIL_21_2	ENER_BUIL_22_2	ENER_BUIL_23_2	ENER_BUIL_24_2 PENER_BUIL_H01_22_1	PENER_BUIL_H01_CA_22_1	PENER_BUIL_H01_CB_22_1	PENER_BUIL_H01_CC_22_1	PENER_BUIL_H01_CD_22_1	PENER_BUIL_H01_CE_22_1	PENER_BUIL_H01_CF_22_1	PENER_BUIL_H01_CG_22_1 PENER_BUIL_H01_22_2	PENER_BUIL_H01_CA_22_2	PENER_BUIL_H01_CB_22_2	PENER_BUIL_H01_CC_22_2	PENER_BUIL_H01_CD_22_2	PENER_BUIL_H01_CE_22_2	PENER_BUIL_H01_CF_22_2	PENER_BUIL_H01_CG_22_2 EMS_HH_1	EMS_HH_21_H01_1	EMS_HH_22_H01_1	EMS_HH_24_H01_1 EMS_HH_2	EMS_HH_21_H01_2	EMS_HH_22_H01_2	EMS_HH_24_H01_2 L_S_13_1	L_S_13_2  L_SE_13_1	L_SE_13_2 L_13_1 L_13_2 MAT_13_1  MAT_13_2  E_13_1   E_13_2         R_SUB_RENOV_CB_1	R_SUB_RENOV_CB_2 PREHAB_H01_ca    PREHAB_H01_cb_1  PREHAB_H01_cc_1  PREHAB_H01_cd_1  PREHAB_H01_ce_1  PREHAB_H01_cf_1    PREHAB_H01_cg_1   PREHAB_H01_ca   PREHAB_H01_cb_2  PREHAB_H01_cc_2  PREHAB_H01_cd_2  PREHAB_H01_ce_2  PREHAB_H01_cf_2    PREHAB_H01_cg_2 PENER_BUIL_h01_1 PENER_BUIL_h01_2    PENER_BUIL_21_1	PENER_BUIL_22_1	PENER_BUIL_23_1	PENER_BUIL_24_1			PENER_BUIL_21_2	PENER_BUIL_22_2	PENER_BUIL_23_2	PENER_BUIL_24_2    	ENER_BUIL_H01_CA_22_1	ENER_BUIL_H01_CB_22_1 ENER_BUIL_H01_CC_22_1	ENER_BUIL_H01_CD_22_1	ENER_BUIL_H01_CE_22_1	ENER_BUIL_H01_CF_22_1	ENER_BUIL_H01_CG_22_1 ENER_BUIL_H01_22_2	ENER_BUIL_H01_CA_22_2	ENER_BUIL_H01_CB_22_2	ENER_BUIL_H01_CC_22_2	ENER_BUIL_H01_CD_22_2	ENER_BUIL_H01_CE_22_2	ENER_BUIL_H01_CF_22_2	ENER_BUIL_H01_CG_22_2 tau_REHAB_H01_CA tau_REHAB_H01_CA  tau_REHAB_H01_CB_1 tau_REHAB_H01_CB_2  tau_REHAB_H01_CC_1 tau_REHAB_H01_CC_2  tau_REHAB_H01_CD_1 tau_REHAB_H01_CD_2   tau_REHAB_H01_CE_1 tau_REHAB_H01_CE_2  tau_REHAB_H01_CF_1 tau_REHAB_H01_CF_2  tau_REHAB_H01_CG_1 tau_REHAB_H01_CG_2  DEBT_REHAB_VAL_H01_CA_1	DEBT_REHAB_VAL_H01_CB_1	DEBT_REHAB_VAL_H01_CC_1	DEBT_REHAB_VAL_H01_CD_1	DEBT_REHAB_VAL_H01_CE_1	DEBT_REHAB_VAL_H01_CF_1	DEBT_REHAB_VAL_H01_CG_1	DEBT_REHAB_VAL_H01_CA_2	DEBT_REHAB_VAL_H01_CB_2	DEBT_REHAB_VAL_H01_CC_2	DEBT_REHAB_VAL_H01_CD_2	DEBT_REHAB_VAL_H01_CE_2	DEBT_REHAB_VAL_H01_CF_2	DEBT_REHAB_VAL_H01_CG_2         PHI_REHAB_H01_CB_CA_1 PHI_REHAB_H01_CC_CA_1 PHI_REHAB_H01_CC_CB_1 PHI_REHAB_H01_CD_CA_1 PHI_REHAB_H01_CD_CB_1 PHI_REHAB_H01_CD_CC_1 PHI_REHAB_H01_CE_CA_1 PHI_REHAB_H01_CE_CB_1 PHI_REHAB_H01_CE_CC_1 PHI_REHAB_H01_CE_CD_1 PHI_REHAB_H01_CF_CA_1 PHI_REHAB_H01_CF_CB_1 PHI_REHAB_H01_CF_CC_1 PHI_REHAB_H01_CF_CD_1 PHI_REHAB_H01_CF_CE_1 PHI_REHAB_H01_CG_CA_1 PHI_REHAB_H01_CG_CB_1 PHI_REHAB_H01_CG_CC_1 PHI_REHAB_H01_CG_CD_1 PHI_REHAB_H01_CG_CE_1 PHI_REHAB_H01_CG_CF_1   PHI_REHAB_H01_CB_CA_2 PHI_REHAB_H01_CC_CA_2 PHI_REHAB_H01_CC_CB_2 PHI_REHAB_H01_CD_CA_2 PHI_REHAB_H01_CD_CB_2 PHI_REHAB_H01_CD_CC_2 PHI_REHAB_H01_CE_CA_2 PHI_REHAB_H01_CE_CB_2 PHI_REHAB_H01_CE_CC_2 PHI_REHAB_H01_CE_CD_2 PHI_REHAB_H01_CF_CA_2 PHI_REHAB_H01_CF_CB_2 PHI_REHAB_H01_CF_CC_2 PHI_REHAB_H01_CF_CD_2 PHI_REHAB_H01_CF_CE_2 PHI_REHAB_H01_CG_CA_2 PHI_REHAB_H01_CG_CB_2 PHI_REHAB_H01_CG_CC_2 PHI_REHAB_H01_CG_CD_2 PHI_REHAB_H01_CG_CE_2 PHI_REHAB_H01_CG_CF_2     PAYBACK_REHAB_H01_CB_1 PAYBACK_REHAB_H01_CC_1 PAYBACK_REHAB_H01_CD_1 PAYBACK_REHAB_H01_CE_1 PAYBACK_REHAB_H01_CF_1 PAYBACK_REHAB_H01_CG_1     PAYBACK_REHAB_H01_CB_2 PAYBACK_REHAB_H01_CC_2 PAYBACK_REHAB_H01_CD_2 PAYBACK_REHAB_H01_CE_2 PAYBACK_REHAB_H01_CF_2 PAYBACK_REHAB_H01_CG_2  UC_K_REHAB_H01_CB_1 UC_K_REHAB_H01_CC_1 UC_K_REHAB_H01_CD_1 UC_K_REHAB_H01_CE_1 UC_K_REHAB_H01_CF_1 UC_K_REHAB_H01_CG_1    UC_K_REHAB_H01_CB_2 UC_K_REHAB_H01_CC_2 UC_K_REHAB_H01_CD_2 UC_K_REHAB_H01_CE_2 UC_K_REHAB_H01_CF_2 UC_K_REHAB_H01_CG_2   w_s_13_0 w_s_13_2    PNewBUIL_H01_1  NewBUIL_H01_1   PNewBUIL_H01_2  NewBUIL_H01_2       EXP_13_OTH_VAL_H01_1 EXP_13_OTH_VAL_H01_1  ENER_BUIL_H01_CA_1	ENER_BUIL_H01_CB_1	ENER_BUIL_H01_CC_1	ENER_BUIL_H01_CD_1	ENER_BUIL_H01_CE_1	ENER_BUIL_H01_CF_1	ENER_BUIL_H01_CG_1	ENER_BUIL_H01_CA_2	ENER_BUIL_H01_CB_2	ENER_BUIL_H01_CC_2	ENER_BUIL_H01_CD_2	ENER_BUIL_H01_CE_2	ENER_BUIL_H01_CF_2	ENER_BUIL_H01_CG_2 ENER_BUIL_H01_CA_1	ENER_BUIL_H01_CB_1	ENER_BUIL_H01_CC_1	ENER_BUIL_H01_CD_1	ENER_BUIL_H01_CE_1	ENER_BUIL_H01_CF_1	ENER_BUIL_H01_CG_1	ENER_BUIL_H01_CA_2	ENER_BUIL_H01_CB_2	ENER_BUIL_H01_CC_2	ENER_BUIL_H01_CD_2	ENER_BUIL_H01_CE_2	ENER_BUIL_H01_CF_2	ENER_BUIL_H01_CG_2  ENER_BUIL_H01_CA_24 	ENER_BUIL_H01_CB_24_1 ENER_BUIL_H01_CC_24_1	ENER_BUIL_H01_CD_24_1	ENER_BUIL_H01_CE_24_1	ENER_BUIL_H01_CF_24_1	ENER_BUIL_H01_CG_24_1 ENER_BUIL_H01_24_2	ENER_BUIL_H01_CA_24	ENER_BUIL_H01_CB_24_2	ENER_BUIL_H01_CC_24_2	ENER_BUIL_H01_CD_24_2	ENER_BUIL_H01_CE_24_2	ENER_BUIL_H01_CF_24_2	ENER_BUIL_H01_CG_24_2                                                                                                                             
+                                                                                                                                                                                                                                          
+'Reporting_MPR.sheet(t)
+'show Reporting_MPR
+
+ 
+group Reporting_finPO PIA_20_1	IR_VAL_1	PIS_1*IS_1	PCSE_TOT_1*CSE_TOT_1	PCSS_1*CSS_1	PCSS_SE_1*CSS_SE_1	I_MDE_exo_20	PRF_01_1(-1)*RF_01_1(-1)	PRF_02_1(-1)*RF_02_1(-1)	PRF_03_1(-1)*RF_03_1(-1)	PRF_04_1(-1)*RF_04_1(-1)	PRF_05_1(-1)*RF_05_1(-1)	PRF_06_1(-1)*RF_06_1(-1)	PRF_07_1(-1)*RF_07_1(-1)	PRF_08_1(-1)*RF_08_1(-1)	PRF_09_1(-1)*RF_09_1(-1)	PRF_10_1(-1)*RF_10_1(-1)	PRF_11_1(-1)*RF_11_1(-1)	PRF_12_1(-1)*RF_12_1(-1)	PRF_13_1(-1)*RF_13_1(-1)	PRF_14_1(-1)*RF_14_1(-1)	PRF_15_1(-1)*RF_15_1(-1)	PRF_16_1(-1)*RF_16_1(-1)	PRF_17_1(-1)*RF_17_1(-1)	PRF_18_1(-1)*RF_18_1(-1)	PRF_19_1(-1)*RF_19_1(-1)	PRF_20_1(-1)*RF_20_1(-1)	PRF_21_1(-1)*RF_21_1(-1)	PRF_2201_1(-1)*RF_2201_1(-1)	PRF_2202_1(-1)*RF_2202_1(-1)	PRF_2301_1(-1)*RF_2301_1(-1)	PRF_2302_1(-1)*RF_2302_1(-1)	PRF_2303_1(-1)*RF_2303_1(-1)	PRF_2304_1(-1)*RF_2304_1(-1)	PRF_2305_1(-1)*RF_2305_1(-1)	PRF_2306_1(-1)*RF_2306_1(-1)	PRF_2307_1(-1)*RF_2307_1(-1)	PRF_2308_1(-1)*RF_2308_1(-1)	PRF_2401_1(-1)*RF_2401_1(-1)	PRF_2402_1(-1)*RF_2402_1(-1)	PRF_2403_1(-1)*RF_2403_1(-1)	PRF_2404_1(-1)*RF_2404_1(-1)	PRF_2405_1(-1)*RF_2405_1(-1)	PRF_2406_1(-1)*RF_2406_1(-1) SUB_AUTO_VAL_H01_2	SUB_AUTO_ELEC_VAL_H01_2	SUB_AUTO_TH_VAL_H01_2	SUB_IRVE_VAL_2	SUB_AUTO_VAL_H01_1	SUB_AUTO_ELEC_VAL_H01_1	SUB_AUTO_TH_VAL_H01_1	SUB_IRVE_VAL_1 SUB_RENOV_VAL_2	SUB_RENOV_VAL_1 TAX_CR_VAL_15_2	TAX_CR_VAL_16_2	TAX_CR_VAL_15_1	TAX_CR_VAL_16_1 TAX_CR_VAL_02_2	TAX_CR_VAL_03_2	TAX_CR_VAL_04_2	TAX_CR_VAL_05_2	TAX_CR_VAL_06_2	TAX_CR_VAL_07_2	TAX_CR_VAL_08_2	TAX_CR_VAL_09_2	TAX_CR_VAL_10_2	TAX_CR_VAL_11_2	TAX_CR_VAL_12_2	TAX_CR_VAL_02_1	TAX_CR_VAL_03_1	TAX_CR_VAL_04_1	TAX_CR_VAL_05_1	TAX_CR_VAL_06_1	TAX_CR_VAL_07_1	TAX_CR_VAL_08_1	TAX_CR_VAL_09_1	TAX_CR_VAL_10_1	TAX_CR_VAL_11_1	TAX_CR_VAL_12_1 	TAX_CR_VAL_2 TAX_CR_VAL_1 PRESOC_DOM_OTH_VAL_DES_1	PRESOC_DOM_U_VAL_1	EXPG_03_1	EXPG_12_1	EXPG_14_1	EXPG_15_1	EXPG_16_1	EXPG_19_1	EXPG_24_1	PEXPG_03_1	PEXPG_12_1	PEXPG_14_1	PEXPG_15_1	PEXPG_16_1	PEXPG_19_1	PEXPG_24_1	PGDP_1	GDP_1	P_1
+
+'Reporting_finPO.sheet(t)
+'show Reporting_finPO
+
+ 
+group Reporting_Logan NEWAUTO_ELEC_H01_1	NEWAUTO_TH_H01_1	NEWAUTO_H01_1	PAUTO_ELEC_H01_1	PNEWAUTO_TH_H01_1	PNEWAUTO_H01_1	PCH_1	AUTO_ELEC_H01_1	AUTO_TH_H01_1	AUTO_1	PENER_AUTOELEC_H01_CA_1	PEXP_AUTO_H01_1	EXP_AUTO_H01_1	EXP_AUTO_H01_22_1	EXP_AUTO_H01_23_1	EXP_AUTO_H01_24_1	Q_MTEP_H_AUTO_22_1	Q_MTEP_H_AUTO_23_1	Q_MTEP_H_AUTO_24_1	KM_AUTO_H01_1	KM_AUTO_ELEC_H01_1	KM_AUTO_TH_H01_1	SUB_AUTO_ELEC_VAL_H01_1	SUB_AUTO_TH_VAL_H01_1	SUB_AUTO_VAL_H01_1	IC_HH_22_H01_1	EXP_NEWAUTO_VAL_H01_1	ENER_BUIL_H01_1	PENER_BUIL_H01_1	EMS_HH_1	Q_MTEP_H_BUIL_1	Q_MTEP_H_BUIL_21_1	Q_MTEP_H_BUIL_22_1	Q_MTEP_H_BUIL_23_1	Q_MTEP_H_BUIL_24_1	BUIL_H01_1	BUIL_H01_CA_1	BUIL_H01_CB_1	BUIL_H01_CC_1	BUIL_H01_CD_1	BUIL_H01_CE_1	BUIL_H01_CF_1	BUIL_H01_CG_1	BUIL_H01_DES_1	REHAB_H01_1	PREHAB_H01_1	RENOV_VAL_1	SUB_RENOV_VAL_1	R_SUB_CEE_H01_CF_CA_1	ER_TERTIARY_1	ER_TERTIARY_COAL_1	ER_TERTIARY_OIL_1	ER_TERTIARY_ELEC_1	ER_TERTIARY_GAS_1	EMS_SEC_TOT_19_1	EMS_SEC_TOT_20_1	ENER_19_1	PENER_19_1	ENER_20_1	PENER_20_1	I_MDE_19_1	I_MDE_20_1	PGDP_1	IA_01_1	IA_02_1	IA_03_1	IA_04_1	IA_05_1	IA_06_1	IA_07_1	IA_08_1	IA_09_1	IA_10_1	IA_11_1	IA_12_1	IA_13_1	IA_14_1	IA_15_1	IA_16_1	IA_17_1	IA_18_1	IA_19_1	IA_20_1	IA_21_1	IA_2201_1	IA_2202_1	IA_2301_1	IA_2302_1	IA_2303_1	IA_2304_1	IA_2305_1	IA_2306_1	IA_2307_1	IA_2308_1	IA_2401_1	IA_2402_1	IA_2403_1	IA_2404_1	IA_2405_1	IA_2406_1	PIA_01_1	PIA_02_1	PIA_03_1	PIA_04_1	PIA_05_1	PIA_06_1	PIA_07_1	PIA_08_1	PIA_09_1	PIA_10_1	PIA_11_1	PIA_12_1	PIA_13_1	PIA_14_1	PIA_15_1	PIA_16_1	PIA_17_1	PIA_18_1	PIA_19_1	PIA_20_1	PIA_21_1	PIA_2201_1	PIA_2202_1	PIA_2301_1	PIA_2302_1	PIA_2303_1	PIA_2304_1	PIA_2305_1	PIA_2306_1	PIA_2307_1	PIA_2308_1	PIA_2401_1	PIA_2402_1	PIA_2403_1	PIA_2404_1	PIA_2405_1	PIA_2406_1	CU_OPEX_01_1	CU_OPEX_02_1	CU_OPEX_03_1	CU_OPEX_04_1	CU_OPEX_05_1	CU_OPEX_06_1	CU_OPEX_07_1	CU_OPEX_08_1	CU_OPEX_09_1	CU_OPEX_10_1	CU_OPEX_11_1	CU_OPEX_12_1	CU_OPEX_13_1	CU_OPEX_14_1	CU_OPEX_15_1	CU_OPEX_16_1	CU_OPEX_17_1	CU_OPEX_18_1	CU_OPEX_19_1	CU_OPEX_20_1	CU_OPEX_21_1	CU_OPEX_2201_1	CU_OPEX_2202_1	CU_OPEX_2301_1	CU_OPEX_2302_1	CU_OPEX_2303_1	CU_OPEX_2304_1	CU_OPEX_2305_1	CU_OPEX_2306_1	CU_OPEX_2307_1	CU_OPEX_2308_1	CU_OPEX_2401_1	CU_OPEX_2402_1	CU_OPEX_2403_1	CU_OPEX_2404_1	CU_OPEX_2405_1	CU_OPEX_2406_1	Y_01_1	Y_02_1	Y_03_1	Y_04_1	Y_05_1	Y_06_1	Y_07_1	Y_08_1	Y_09_1	Y_10_1	Y_11_1	Y_12_1	Y_13_1	Y_14_1	Y_15_1	Y_16_1	Y_17_1	Y_18_1	Y_19_1	Y_20_1	Y_21_1	Y_2201_1	Y_2202_1	Y_2301_1	Y_2302_1	Y_2303_1	Y_2304_1	Y_2305_1	Y_2306_1	Y_2307_1	Y_2308_1	Y_2401_1	Y_2402_1	Y_2403_1	Y_2404_1	Y_2405_1	Y_2406_1	PY_01_1	PY_02_1	PY_03_1	PY_04_1	PY_05_1	PY_06_1	PY_07_1	PY_08_1	PY_09_1	PY_10_1	PY_11_1	PY_12_1	PY_13_1	PY_14_1	PY_15_1	PY_16_1	PY_17_1	PY_18_1	PY_19_1	PY_20_1	PY_21_1	PY_2201_1	PY_2202_1	PY_2301_1	PY_2302_1	PY_2303_1	PY_2304_1	PY_2305_1	PY_2306_1	PY_2307_1	PY_2308_1	PY_2401_1	PY_2402_1	PY_2403_1	PY_2404_1	PY_2405_1	PY_2406_1	L_01_1	L_02_1	L_03_1	L_04_1	L_05_1	L_06_1	L_07_1	L_08_1	L_09_1	L_10_1	L_11_1	L_12_1	L_13_1	L_14_1	L_15_1	L_16_1	L_17_1	L_18_1	L_19_1	L_20_1	L_21_1	L_2201_1	L_2202_1	L_2301_1	L_2302_1	L_2303_1	L_2304_1	L_2305_1	L_2306_1	L_2307_1	L_2308_1	L_2401_1	L_2402_1	L_2403_1	L_2404_1	L_2405_1	L_2406_1	CL_01_1	CL_02_1	CL_03_1	CL_04_1	CL_05_1	CL_06_1	CL_07_1	CL_08_1	CL_09_1	CL_10_1	CL_11_1	CL_12_1	CL_13_1	CL_14_1	CL_15_1	CL_16_1	CL_17_1	CL_18_1	CL_19_1	CL_20_1	CL_21_1	CL_2201_1	CL_2202_1	CL_2301_1	CL_2302_1	CL_2303_1	CL_2304_1	CL_2305_1	CL_2306_1	CL_2307_1	CL_2308_1	CL_2401_1	CL_2402_1	CL_2403_1	CL_2404_1	CL_2405_1	CL_2406_1	PENER_01_1	PENER_02_1	PENER_03_1	PENER_04_1	PENER_05_1	PENER_06_1	PENER_07_1	PENER_08_1	PENER_09_1	PENER_10_1	PENER_11_1	PENER_12_1	PENER_13_1	PENER_14_1	PENER_15_1	PENER_16_1	PENER_17_1	PENER_18_1	PENER_19_1	PENER_20_1	PENER_21_1	PENER_2201_1	PENER_2202	PENER_2301_1	PENER_2302_1	PENER_2303_1	PENER_2304_1	PENER_2305_1	PENER_2306_1	PENER_2307_1	PENER_2308_1	PENER_2401_1	PENER_2402	PENER_2403	PENER_2404	PENER_2405	PENER_2406	ENER_01_1	ENER_02_1	ENER_03_1	ENER_04_1	ENER_05_1	ENER_06_1	ENER_07_1	ENER_08_1	ENER_09_1	ENER_10_1	ENER_11_1	ENER_12_1	ENER_13_1	ENER_14_1	ENER_15_1	ENER_16_1	ENER_17_1	ENER_18_1	ENER_19_1	ENER_20_1	ENER_21_1	ENER_2201_1	ENER_2202_1	ENER_2301_1	ENER_2302_1	ENER_2303_1	ENER_2304_1	ENER_2305_1	ENER_2306_1	ENER_2307_1	ENER_2308_1	ENER_2401_1	ENER_2402_1	ENER_2403_1	ENER_2404_1	ENER_2405_1	ENER_2406_1	PMAT_01_1	PMAT_02_1	PMAT_03_1	PMAT_04_1	PMAT_05_1	PMAT_06_1	PMAT_07_1	PMAT_08_1	PMAT_09_1	PMAT_10_1	PMAT_11_1	PMAT_12_1	PMAT_13_1	PMAT_14_1	PMAT_15_1	PMAT_16_1	PMAT_17_1	PMAT_18_1	PMAT_19_1	PMAT_20_1	PMAT_21_1	PMAT_2201_1	PMAT_2202_1	PMAT_2301_1	PMAT_2302_1	PMAT_2303_1	PMAT_2304_1	PMAT_2305_1	PMAT_2306_1	PMAT_2307_1	PMAT_2308_1	PMAT_2401_1	PMAT_2402_1	PMAT_2403_1	PMAT_2404_1	PMAT_2405_1	PMAT_2406_1	MAT_01_1	MAT_02_1	MAT_03_1	MAT_04_1	MAT_05_1	MAT_06_1	MAT_07_1	MAT_08_1	MAT_09_1	MAT_10_1	MAT_11_1	MAT_12_1	MAT_13_1	MAT_14_1	MAT_15_1	MAT_16_1	MAT_17_1	MAT_18_1	MAT_19_1	MAT_20_1	MAT_21_1	MAT_2201_1	MAT_2202_1	MAT_2301_1	MAT_2302_1	MAT_2303_1	MAT_2304_1	MAT_2305_1	MAT_2306_1	MAT_2307_1	MAT_2308_1	MAT_2401_1	MAT_2402_1	MAT_2403_1	MAT_2404_1	MAT_2405_1	MAT_2406_1	Q_MTEP_SEC_01_1	Q_MTEP_SEC_02_1	Q_MTEP_SEC_03_1	Q_MTEP_SEC_04_1	Q_MTEP_SEC_05_1	Q_MTEP_SEC_06_1	Q_MTEP_SEC_07_1	Q_MTEP_SEC_08_1	Q_MTEP_SEC_09_1	Q_MTEP_SEC_10_1	Q_MTEP_SEC_11_1	Q_MTEP_SEC_12_1	Q_MTEP_SEC_13_1	Q_MTEP_SEC_14_1	Q_MTEP_SEC_15_1	Q_MTEP_SEC_16_1	Q_MTEP_SEC_17_1	Q_MTEP_SEC_18_1	Q_MTEP_SEC_19_1	Q_MTEP_SEC_20_1	EMS_SEC_TOT_01_1	EMS_SEC_TOT_02_1	EMS_SEC_TOT_03_1	EMS_SEC_TOT_04_1	EMS_SEC_TOT_05_1	EMS_SEC_TOT_06_1	EMS_SEC_TOT_07_1	EMS_SEC_TOT_08_1	EMS_SEC_TOT_09_1	EMS_SEC_TOT_10_1	EMS_SEC_TOT_11_1	EMS_SEC_TOT_12_1	EMS_SEC_TOT_13_1	EMS_SEC_TOT_14_1	EMS_SEC_TOT_15_1	EMS_SEC_TOT_16_1	EMS_SEC_TOT_17_1	EMS_SEC_TOT_18_1	EMS_SEC_TOT_19_1	EMS_SEC_TOT_20_1	EMS_SEC_TOT_21_1	EMS_SEC_TOT_2201_1	EMS_SEC_TOT_2202_1	EMS_SEC_TOT_2301_1	EMS_SEC_TOT_2302_1	EMS_SEC_TOT_2303_1	EMS_SEC_TOT_2304_1	EMS_SEC_TOT_2305_1	EMS_SEC_TOT_2306_1	EMS_SEC_TOT_2307_1	EMS_SEC_TOT_2308_1	EMS_SEC_TOT_2401_1	EMS_SEC_TOT_2402_1	EMS_SEC_TOT_2403_1	EMS_SEC_TOT_2404_1	EMS_SEC_TOT_2405_1	EMS_SEC_TOT_2406_1	TAX_CR_VAL_01	TAX_CR_VAL_02_1	TAX_CR_VAL_03_1	TAX_CR_VAL_04_1	TAX_CR_VAL_05_1	TAX_CR_VAL_06_1	TAX_CR_VAL_07_1	TAX_CR_VAL_08_1	TAX_CR_VAL_09_1	TAX_CR_VAL_10_1	TAX_CR_VAL_11_1	TAX_CR_VAL_12_1	TAX_CR_VAL_13	TAX_CR_VAL_14	TAX_CR_VAL_15_1	TAX_CR_VAL_16_1	TAX_CR_VAL_17	TAX_CR_VAL_18	TAX_CR_VAL_19_1	TAX_CR_VAL_20	I_MDE_01_1	I_MDE_02_1	I_MDE_03_1	I_MDE_04_1	I_MDE_05_1	I_MDE_06_1	I_MDE_07_1	I_MDE_08_1	I_MDE_09_1	I_MDE_10_1	I_MDE_11_1	I_MDE_12_1	I_MDE_13_1	I_MDE_14_1	I_MDE_15_1	I_MDE_16_1	I_MDE_17_1	I_MDE_18_1	ER_COAL_1	ER_OIL_2201_1	ER_OIL_2202_1	ER_ELEC_2301_1	ER_ELEC_2302_1	ER_ELEC_2303_1	ER_ELEC_2304_1	ER_ELEC_2305_1	ER_ELEC_2306_1	ER_ELEC_2307_1	ER_ELEC_2308_1	ER_GAS_2401_1	ER_GAS_2402_1	ER_GAS_2403_1	ER_GAS_2404_1	ER_GAS_2405_1	ER_GAS_2406_1	CU_MWH_PGDP_21_1	CU_MWH_PGDP_22_1	CU_MWH_PGDP_23_1	CU_MWH_PGDP_24_1	CU_MWH_PGDP_2201_1	CU_MWH_PGDP_2202_1	CU_MWH_PGDP_2301_1	CU_MWH_PGDP_2302_1	CU_MWH_PGDP_2303_1	CU_MWH_PGDP_2304_1	CU_MWH_PGDP_2305_1	CU_MWH_PGDP_2306_1	CU_MWH_PGDP_2307_1	CU_MWH_PGDP_2308_1	CU_MWH_PGDP_2401_1	CU_MWH_PGDP_2402_1	CU_MWH_PGDP_2403_1	CU_MWH_PGDP_2404_1	CU_MWH_PGDP_2405_1	CU_MWH_PGDP_2406_1	Q_MTEP_SEC_22_16_1	Q_MTEP_SEC_23_16_1	Q_MTEP_SEC_24_16_1	MAT_N_06_01_1/Y_01_1	MAT_N_06_02_1/Y_02_1	MAT_N_06_03_1/Y_03_1	MAT_N_06_04_1/Y_04_1	MAT_N_06_05_1/Y_05_1	MAT_N_06_06_1/Y_06_1	MAT_N_06_07_1/Y_07_1	MAT_N_06_08_1/Y_08_1	MAT_N_06_09_1/Y_09_1	MAT_N_06_11_1/Y_11_1	MAT_N_06_12_1/Y_12_1	MAT_N_06_13_1/Y_13_1	MAT_N_06_14_1/Y_14_1	MAT_N_06_15_1/Y_15_1	MAT_N_06_16_1/Y_16_1	MAT_N_06_17_1/Y_17_1	MAT_N_06_18_1/Y_18_1	MAT_N_06_19_1/Y_19_1	MAT_N_06_20_1/Y_20_1	MAT_N_07_01_1/Y_01_1	MAT_N_07_02_1/Y_02_1	MAT_N_07_03_1/Y_03_1	MAT_N_07_04_1/Y_04_1	MAT_N_07_05_1/Y_05_1	MAT_N_07_06_1/Y_06_1	MAT_N_07_07_1/Y_07_1	MAT_N_07_08_1/Y_08_1	MAT_N_07_09_1/Y_09_1	MAT_N_07_10_1/Y_10_1	MAT_N_07_11_1/Y_11_1	MAT_N_07_12_1/Y_12_1	MAT_N_07_13_1/Y_13_1	MAT_N_07_14_1/Y_14_1	MAT_N_07_15_1/Y_15_1	MAT_N_07_16_1/Y_16_1	MAT_N_07_17_1/Y_17_1	MAT_N_07_18_1/Y_18_1	MAT_N_07_19_1/Y_19_1	MAT_N_07_20_1/Y_20_1	MAT_N_08_02_1/Y_02_1	MAT_N_08_03_1/Y_03_1	MAT_N_08_04_1/Y_04_1	MAT_N_08_05_1/Y_05_1	MAT_N_08_06_1/Y_06_1	MAT_N_08_07_1/Y_07_1	MAT_N_08_08_1/Y_08_1	MAT_N_08_09_1/Y_09_1	MAT_N_08_10_1/Y_10_1	MAT_N_08_11_1/Y_11_1	MAT_N_08_12_1/Y_12_1	MAT_N_08_13_1/Y_13_1	MAT_N_08_14_1/Y_14_1	MAT_N_08_15_1/Y_15_1	MAT_N_08_16_1/Y_16_1	MAT_N_08_17_1/Y_17_1	MAT_N_08_18_1/Y_18_1	MAT_N_08_19_1/Y_19_1	MAT_N_08_20_1/Y_20_1	MAT_N_09_01_1/Y_01_1	MAT_N_09_02_1/Y_02_1	MAT_N_09_03_1/Y_03_1	MAT_N_09_04_1/Y_04_1	MAT_N_09_05_1/Y_05_1	MAT_N_09_06_1/Y_06_1	MAT_N_09_07_1/Y_07_1	MAT_N_09_08_1/Y_08_1	MAT_N_09_09_1/Y_09_1	MAT_N_09_10_1/Y_10_1	MAT_N_09_11_1/Y_11_1	MAT_N_09_12_1/Y_12_1	MAT_N_09_13_1/Y_13_1	MAT_N_09_14_1/Y_14_1	MAT_N_09_15_1/Y_15_1	MAT_N_09_16_1/Y_16_1	MAT_N_09_17_1/Y_17_1	MAT_N_09_18_1/Y_18_1	MAT_N_09_19_1/Y_19_1	MAT_N_09_20_1/Y_20_1	MAT_N_14_01_1/Y_01_1	MAT_N_14_02_1/Y_02_1	MAT_N_14_03_1/Y_03_1	MAT_N_14_04_1/Y_04_1	MAT_N_14_05_1/Y_05_1	MAT_N_14_06_1/Y_06_1	MAT_N_14_07_1/Y_07_1	MAT_N_14_08_1/Y_08_1	MAT_N_14_09_1/Y_09_1	MAT_N_14_10_1/Y_10_1	MAT_N_14_11_1/Y_11_1	MAT_N_14_12_1/Y_12_1	MAT_N_14_13_1/Y_13_1	MAT_N_14_14_1/Y_14_1	MAT_N_14_15_1/Y_15_1	MAT_N_14_16_1/Y_16_1	MAT_N_14_17_1/Y_17_1	MAT_N_14_18_1/Y_18_1	MAT_N_14_19_1/Y_19_1	MAT_N_14_20_1/Y_20_1	MAT_N_16_01_1/Y_01_1	MAT_N_16_02_1/Y_02_1	MAT_N_16_03_1/Y_03_1	MAT_N_16_04_1/Y_04_1	MAT_N_16_05_1/Y_05_1	MAT_N_16_06_1/Y_06_1	MAT_N_16_07_1/Y_07_1	MAT_N_16_08_1/Y_08_1	MAT_N_16_09_1/Y_09_1	MAT_N_16_10_1/Y_10_1	MAT_N_16_11_1/Y_11_1	MAT_N_16_12_1/Y_12_1	MAT_N_16_13_1/Y_13_1	MAT_N_16_14_1/Y_14_1	MAT_N_16_15_1/Y_15_1	MAT_N_16_16_1/Y_16_1	MAT_N_16_17_1/Y_17_1	MAT_N_16_18_1/Y_18_1	MAT_N_16_19_1/Y_19_1	MAT_N_16_20_1/Y_20_1	MAT_N_17_02_1/Y_02_1	MAT_N_17_03_1/Y_03_1	MAT_N_17_04_1/Y_04_1	MAT_N_17_05_1/Y_05_1	MAT_N_17_06_1/Y_06_1	MAT_N_17_07_1/Y_07_1	MAT_N_17_08_0/Y_08_0	MAT_N_17_09_1/Y_09_1	MAT_N_17_10_1/Y_10_1	MAT_N_17_11_1/Y_11_1	MAT_N_17_12_1/Y_12_1	MAT_N_17_13_1/Y_13_1	MAT_N_17_14_1/Y_14_1	MAT_N_17_15_1/Y_15_1	MAT_N_17_16_1/Y_16_1	MAT_N_17_17_1/Y_17_1	MAT_N_17_18_1/Y_18_1	MAT_N_17_19_1/Y_19_1	MAT_N_17_20_1/Y_20_1	MAT_N_01_13_1/Y_13_1	MAT_N_02_13_1/Y_13_1	MAT_N_03_13_1/Y_13_1	MAT_N_04_13_1/Y_13_1	MAT_N_05_13_1/Y_13_1	MAT_N_06_13_1/Y_13_1	MAT_N_07_13_1/Y_13_1	MAT_N_08_13_1/Y_13_1	MAT_N_09_13_1/Y_13_1	MAT_N_10_13_1/Y_13_1	MAT_N_11_13_1/Y_13_1	MAT_N_12_13_1/Y_13_1	MAT_N_13_13_1/Y_13_1	MAT_N_14_13_1/Y_13_1	MAT_N_15_13_1/Y_13_1	MAT_N_16_13_1/Y_13_1	MAT_N_17_13_1/Y_13_1	MAT_N_18_13_1/Y_13_1	MAT_N_19_13_1/Y_13_1	MAT_N_20_13_1/Y_13_1	EXP_13_1	PEXP_13_H01_1	NEWBUIL_H01_1	PNEWBUIL_H01_1	NEW_TRUCKS_15_1	NEW_TRUCKS_16_1	NEW_LUV_16_1	TRUCKS_15_1	TRUCKS_22_15_1	TRUCKS_23_15_1	TRUCKS_24_15_1	NEW_TRUCKS_22_15_1	NEW_TRUCKS_23_15_1	NEW_TRUCKS_24_15_1	TRUCKS_16_1	TRUCKS_22_16_1	TRUCKS_23_16_1	TRUCKS_24_16_1	NEW_TRUCKS_22_16_1	NEW_TRUCKS_23_16_1	NEW_TRUCKS_24_16_1	PNEW_TRUCKS_22_15_1	PNEW_TRUCKS_23_15_1	PNEW_TRUCKS_24_15_1	PNEW_TRUCKS_22_16_1	PNEW_TRUCKS_23_16_1	PNEW_TRUCKS_24_16_1	LUV_16_1	LUV_22_16_1	LUV_23_16_1	LUV_24_16_1	PNEW_LUV_22_16_1	PNEW_LUV_23_16_1	PNEW_LUV_24_16_1	NEW_LUV_22_16_1	NEW_LUV_23_16_1	NEW_LUV_24_16_1	YQ_01_1	YQ_02_1	YQ_03_1	YQ_04_1	YQ_05_1	YQ_06_1	YQ_07_1	YQ_08_1	YQ_09_1	YQ_10_1	YQ_11_1	YQ_12_1	YQ_13_1	YQ_14_1	YQ_15_1	YQ_16_1	YQ_17_1	YQ_18_1	YQ_19_1	YQ_20_1	PYQ_01_1	PYQ_02_1	PYQ_03_1	PYQ_04_1	PYQ_05_1	PYQ_06_1	PYQ_07_1	PYQ_08_1	PYQ_09_1	PYQ_10_1	PYQ_11_1	PYQ_12_1	PYQ_13_1	PYQ_14_1	PYQ_15_1	PYQ_16_1	PYQ_17_1	PYQ_18_1	PYQ_19_1	PYQ_20_1	PMAT_03_15_1	PMAT_03_16_1	PINV_IRVE_1	INV_IRVE_1 NEWAUTO_ELEC_H01_2	 NEWAUTO_TH_H01_2	NEWAUTO_H01_2	PAUTO_ELEC_H01_2	PNEWAUTO_TH_H01_2	PNEWAUTO_H01_2	PCH_2	AUTO_ELEC_H01_2	AUTO_TH_H01_2	AUTO_2	PENER_AUTOELEC_H01_CA_2	PEXP_AUTO_H01_2	EXP_AUTO_H01_2	EXP_AUTO_H01_22_2	EXP_AUTO_H01_23_2	EXP_AUTO_H01_24_2	Q_MTEP_H_AUTO_22_2	Q_MTEP_H_AUTO_23_2	Q_MTEP_H_AUTO_24_2	KM_AUTO_H01_2	KM_AUTO_ELEC_H01_2	KM_AUTO_TH_H01_2	SUB_AUTO_ELEC_VAL_H01_2	SUB_AUTO_TH_VAL_H01_2	SUB_AUTO_VAL_H01_2	IC_HH_22_H01_2	EXP_NEWAUTO_VAL_H01_2	ENER_BUIL_H01_2	PENER_BUIL_H01_2	EMS_HH_2	Q_MTEP_H_BUIL_2	Q_MTEP_H_BUIL_21_2	Q_MTEP_H_BUIL_22_2	Q_MTEP_H_BUIL_23_2	Q_MTEP_H_BUIL_24_2	BUIL_H01_2	BUIL_H01_CA_2	BUIL_H01_CB_2	BUIL_H01_CC_2	BUIL_H01_CD_2	BUIL_H01_CE_2	BUIL_H01_CF_2	BUIL_H01_CG_2	BUIL_H01_DES_2	REHAB_H01_2	PREHAB_H01_2	RENOV_VAL_2	SUB_RENOV_VAL_2	R_SUB_CEE_H01_CF_CA_2	ER_TERTIARY_2	ER_TERTIARY_COAL_2	ER_TERTIARY_OIL_2	ER_TERTIARY_ELEC_2	ER_TERTIARY_GAS_2	EMS_SEC_TOT_19_2	EMS_SEC_TOT_20_2	ENER_19_2	PENER_19_2	ENER_20_2	PENER_20_2	I_MDE_19_2	I_MDE_20_2	PGDP_2	IA_01_2	IA_02_2	IA_03_2	IA_04_2	IA_05_2	IA_06_2	IA_07_2	IA_08_2	IA_09_2	IA_10_2	IA_11_2	IA_12_2	IA_13_2	IA_14_2	IA_15_2	IA_16_2	IA_17_2	IA_18_2	IA_19_2	IA_20_2	IA_21_2	IA_2201_2	IA_2202_2	IA_2301_2	IA_2302_2	IA_2303_2	IA_2304_2	IA_2305_2	IA_2306_2	IA_2307_2	IA_2308_2	IA_2401_2	IA_2402_2	IA_2403_2	IA_2404_2	IA_2405_2	IA_2406_2	PIA_01_2	PIA_02_2	PIA_03_2	PIA_04_2	PIA_05_2	PIA_06_2	PIA_07_2	PIA_08_2	PIA_09_2	PIA_10_2	PIA_11_2	PIA_12_2	PIA_13_2	PIA_14_2	PIA_15_2	PIA_16_2	PIA_17_2	PIA_18_2	PIA_19_2	PIA_20_2	PIA_21_2	PIA_2201_2	PIA_2202_2	PIA_2301_2	PIA_2302_2	PIA_2303_2	PIA_2304_2	PIA_2305_2	PIA_2306_2	PIA_2307_2	PIA_2308_2	PIA_2401_2	PIA_2402_2	PIA_2403_2	PIA_2404_2	PIA_2405_2	PIA_2406_2	CU_OPEX_01_2	CU_OPEX_02_2	CU_OPEX_03_2	CU_OPEX_04_2	CU_OPEX_05_2	CU_OPEX_06_2	CU_OPEX_07_2	CU_OPEX_08_2	CU_OPEX_09_2	CU_OPEX_10_2	CU_OPEX_11_2	CU_OPEX_12_2	CU_OPEX_13_2	CU_OPEX_14_2	CU_OPEX_15_2	CU_OPEX_16_2	CU_OPEX_17_2	CU_OPEX_18_2	CU_OPEX_19_2	CU_OPEX_20_2	CU_OPEX_21_2	CU_OPEX_2201_2	CU_OPEX_2202_2	CU_OPEX_2301_2	CU_OPEX_2302_2	CU_OPEX_2303_2	CU_OPEX_2304_2	CU_OPEX_2305_2	CU_OPEX_2306_2	CU_OPEX_2307_2	CU_OPEX_2308_2	CU_OPEX_2401_2	CU_OPEX_2402_2	CU_OPEX_2403_2	CU_OPEX_2404_2	CU_OPEX_2405_2	CU_OPEX_2406_2	Y_01_2	Y_02_2	Y_03_2	Y_04_2	Y_05_2	Y_06_2	Y_07_2	Y_08_2	Y_09_2	Y_10_2	Y_11_2	Y_12_2	Y_13_2	Y_14_2	Y_15_2	Y_16_2	Y_17_2	Y_18_2	Y_19_2	Y_20_2	Y_21_2	Y_2201_2	Y_2202_2	Y_2301_2	Y_2302_2	Y_2303_2	Y_2304_2	Y_2305_2	Y_2306_2	Y_2307_2	Y_2308_2	Y_2401_2	Y_2402_2	Y_2403_2	Y_2404_2	Y_2405_2	Y_2406_2	PY_01_2	PY_02_2	PY_03_2	PY_04_2	PY_05_2	PY_06_2	PY_07_2	PY_08_2	PY_09_2	PY_10_2	PY_11_2	PY_12_2	PY_13_2	PY_14_2	PY_15_2	PY_16_2	PY_17_2	PY_18_2	PY_19_2	PY_20_2	PY_21_2	PY_2201_2	PY_2202_2	PY_2301_2	PY_2302_2	PY_2303_2	PY_2304_2	PY_2305_2	PY_2306_2	PY_2307_2	PY_2308_2	PY_2401_2	PY_2402_2	PY_2403_2	PY_2404_2	PY_2405_2	PY_2406_2	L_01_2	L_02_2	L_03_2	L_04_2	L_05_2	L_06_2	L_07_2	L_08_2	L_09_2	L_10_2	L_11_2	L_12_2	L_13_2	L_14_2	L_15_2	L_16_2	L_17_2	L_18_2	L_19_2	L_20_2	L_21_2	L_2201_2	L_2202_2	L_2301_2	L_2302_2	L_2303_2	L_2304_2	L_2305_2	L_2306_2	L_2307_2	L_2308_2	L_2401_2	L_2402_2	L_2403_2	L_2404_2	L_2405_2	L_2406_2	CL_01_2	CL_02_2	CL_03_2	CL_04_2	CL_05_2	CL_06_2	CL_07_2	CL_08_2	CL_09_2	CL_10_2	CL_11_2	CL_12_2	CL_13_2	CL_14_2	CL_15_2	CL_16_2	CL_17_2	CL_18_2	CL_19_2	CL_20_2	CL_21_2	CL_2201_2	CL_2202_2	CL_2301_2	CL_2302_2	CL_2303_2	CL_2304_2	CL_2305_2	CL_2306_2	CL_2307_2	CL_2308_2	CL_2401_2	CL_2402_2	CL_2403_2	CL_2404_2	CL_2405_2	CL_2406_2	PENER_01_2	PENER_02_2	PENER_03_2	PENER_04_2	PENER_05_2	PENER_06_2	PENER_07_2	PENER_08_2	PENER_09_2	PENER_10_2	PENER_11_2	PENER_12_2	PENER_13_2	PENER_14_2	PENER_15_2	PENER_16_2	PENER_17_2	PENER_18_2	PENER_19_2	PENER_20_2	PENER_21_2	PENER_2201_2	PENER_2202	PENER_2301_2	PENER_2302_2	PENER_2303_2	PENER_2304_2	PENER_2305_2	PENER_2306_2	PENER_2307_2	PENER_2308_2	PENER_2401_2	PENER_2402	PENER_2403	PENER_2404	PENER_2405	PENER_2406	ENER_01_2	ENER_02_2	ENER_03_2	ENER_04_2	ENER_05_2	ENER_06_2	ENER_07_2	ENER_08_2	ENER_09_2	ENER_10_2	ENER_11_2	ENER_12_2	ENER_13_2	ENER_14_2	ENER_15_2	ENER_16_2	ENER_17_2	ENER_18_2	ENER_19_2	ENER_20_2	ENER_21_2	ENER_2201_2	ENER_2202_2	ENER_2301_2	ENER_2302_2	ENER_2303_2	ENER_2304_2	ENER_2305_2	ENER_2306_2	ENER_2307_2	ENER_2308_2	ENER_2401_2	ENER_2402_2	ENER_2403_2	ENER_2404_2	ENER_2405_2	ENER_2406_2	PMAT_01_2	PMAT_02_2	PMAT_03_2	PMAT_04_2	PMAT_05_2	PMAT_06_2	PMAT_07_2	PMAT_08_2	PMAT_09_2	PMAT_10_2	PMAT_11_2	PMAT_12_2	PMAT_13_2	PMAT_14_2	PMAT_15_2	PMAT_16_2	PMAT_17_2	PMAT_18_2	PMAT_19_2	PMAT_20_2	PMAT_21_2	PMAT_2201_2	PMAT_2202_2	PMAT_2301_2	PMAT_2302_2	PMAT_2303_2	PMAT_2304_2	PMAT_2305_2	PMAT_2306_2	PMAT_2307_2	PMAT_2308_2	PMAT_2401_2	PMAT_2402_2	PMAT_2403_2	PMAT_2404_2	PMAT_2405_2	PMAT_2406_2	MAT_01_2	MAT_02_2	MAT_03_2	MAT_04_2	MAT_05_2	MAT_06_2	MAT_07_2	MAT_08_2	MAT_09_2	MAT_10_2	MAT_11_2	MAT_12_2	MAT_13_2	MAT_14_2	MAT_15_2	MAT_16_2	MAT_17_2	MAT_18_2	MAT_19_2	MAT_20_2	MAT_21_2	MAT_2201_2	MAT_2202_2	MAT_2301_2	MAT_2302_2	MAT_2303_2	MAT_2304_2	MAT_2305_2	MAT_2306_2	MAT_2307_2	MAT_2308_2	MAT_2401_2	MAT_2402_2	MAT_2403_2	MAT_2404_2	MAT_2405_2	MAT_2406_2	Q_MTEP_SEC_01_2	Q_MTEP_SEC_02_2	Q_MTEP_SEC_03_2	Q_MTEP_SEC_04_2	Q_MTEP_SEC_05_2	Q_MTEP_SEC_06_2	Q_MTEP_SEC_07_2	Q_MTEP_SEC_08_2	Q_MTEP_SEC_09_2	Q_MTEP_SEC_10_2	Q_MTEP_SEC_11_2	Q_MTEP_SEC_12_2	Q_MTEP_SEC_13_2	Q_MTEP_SEC_14_2	Q_MTEP_SEC_15_2	Q_MTEP_SEC_16_2	Q_MTEP_SEC_17_2	Q_MTEP_SEC_18_2	Q_MTEP_SEC_19_2	Q_MTEP_SEC_20_2	EMS_SEC_TOT_01_2	EMS_SEC_TOT_02_2	EMS_SEC_TOT_03_2	EMS_SEC_TOT_04_2	EMS_SEC_TOT_05_2	EMS_SEC_TOT_06_2	EMS_SEC_TOT_07_2	EMS_SEC_TOT_08_2	EMS_SEC_TOT_09_2	EMS_SEC_TOT_10_2	EMS_SEC_TOT_11_2	EMS_SEC_TOT_12_2	EMS_SEC_TOT_13_2	EMS_SEC_TOT_14_2	EMS_SEC_TOT_15_2	EMS_SEC_TOT_16_2	EMS_SEC_TOT_17_2	EMS_SEC_TOT_18_2	EMS_SEC_TOT_19_2	EMS_SEC_TOT_20_2	EMS_SEC_TOT_21_2	EMS_SEC_TOT_2201_2	EMS_SEC_TOT_2202_2	EMS_SEC_TOT_2301_2	EMS_SEC_TOT_2302_2	EMS_SEC_TOT_2303_2	EMS_SEC_TOT_2304_2	EMS_SEC_TOT_2305_2	EMS_SEC_TOT_2306_2	EMS_SEC_TOT_2307_2	EMS_SEC_TOT_2308_2	EMS_SEC_TOT_2401_2	EMS_SEC_TOT_2402_2	EMS_SEC_TOT_2403_2	EMS_SEC_TOT_2404_2	EMS_SEC_TOT_2405_2	EMS_SEC_TOT_2406_2	TAX_CR_VAL_01	TAX_CR_VAL_02_2	TAX_CR_VAL_03_2	TAX_CR_VAL_04_2	TAX_CR_VAL_05_2	TAX_CR_VAL_06_2	TAX_CR_VAL_07_2	TAX_CR_VAL_08_2	TAX_CR_VAL_09_2	TAX_CR_VAL_10_2	TAX_CR_VAL_11_2	TAX_CR_VAL_12_2	TAX_CR_VAL_13	TAX_CR_VAL_14	TAX_CR_VAL_15_2	TAX_CR_VAL_16_2	TAX_CR_VAL_17	TAX_CR_VAL_18	TAX_CR_VAL_19_2	TAX_CR_VAL_20	I_MDE_01_2	I_MDE_02_2	I_MDE_03_2	I_MDE_04_2	I_MDE_05_2	I_MDE_06_2	I_MDE_07_2	I_MDE_08_2	I_MDE_09_2	I_MDE_10_2	I_MDE_11_2	I_MDE_12_2	I_MDE_13_2	I_MDE_14_2	I_MDE_15_2	I_MDE_16_2	I_MDE_17_2	I_MDE_18_2	ER_COAL_2	ER_OIL_2201_2	ER_OIL_2202_2	ER_ELEC_2301_2	ER_ELEC_2302_2	ER_ELEC_2303_2	ER_ELEC_2304_2	ER_ELEC_2305_2	ER_ELEC_2306_2	ER_ELEC_2307_2	ER_ELEC_2308_2	ER_GAS_2401_2	ER_GAS_2402_2	ER_GAS_2403_2	ER_GAS_2404_2	ER_GAS_2405_2	ER_GAS_2406_2	CU_MWH_PGDP_21_2	CU_MWH_PGDP_22_2	CU_MWH_PGDP_23_2	CU_MWH_PGDP_24_2	CU_MWH_PGDP_2201_2	CU_MWH_PGDP_2202_2	CU_MWH_PGDP_2301_2	CU_MWH_PGDP_2302_2	CU_MWH_PGDP_2303_2	CU_MWH_PGDP_2304_2	CU_MWH_PGDP_2305_2	CU_MWH_PGDP_2306_2	CU_MWH_PGDP_2307_2	CU_MWH_PGDP_2308_2	CU_MWH_PGDP_2401_2	CU_MWH_PGDP_2402_2	CU_MWH_PGDP_2403_2	CU_MWH_PGDP_2404_2	CU_MWH_PGDP_2405_2	CU_MWH_PGDP_2406_2	Q_MTEP_SEC_22_16_2	Q_MTEP_SEC_23_16_2	Q_MTEP_SEC_24_16_2	MAT_N_06_01_2/Y_01_2	MAT_N_06_02_2/Y_02_2	MAT_N_06_03_2/Y_03_2	MAT_N_06_04_2/Y_04_2	MAT_N_06_05_2/Y_05_2	MAT_N_06_06_2/Y_06_2	MAT_N_06_07_2/Y_07_2	MAT_N_06_08_2/Y_08_2	MAT_N_06_09_2/Y_09_2	MAT_N_06_11_2/Y_11_2	MAT_N_06_12_2/Y_12_2	MAT_N_06_13_2/Y_13_2	MAT_N_06_14_2/Y_14_2	MAT_N_06_15_2/Y_15_2	MAT_N_06_16_2/Y_16_2	MAT_N_06_17_2/Y_17_2	MAT_N_06_18_2/Y_18_2	MAT_N_06_19_2/Y_19_2	MAT_N_06_20_2/Y_20_2	MAT_N_07_01_2/Y_01_2	MAT_N_07_02_2/Y_02_2	MAT_N_07_03_2/Y_03_2	MAT_N_07_04_2/Y_04_2	MAT_N_07_05_2/Y_05_2	MAT_N_07_06_2/Y_06_2	MAT_N_07_07_2/Y_07_2	MAT_N_07_08_2/Y_08_2	MAT_N_07_09_2/Y_09_2	MAT_N_07_10_2/Y_10_2	MAT_N_07_11_2/Y_11_2	MAT_N_07_12_2/Y_12_2	MAT_N_07_13_2/Y_13_2	MAT_N_07_14_2/Y_14_2	MAT_N_07_15_2/Y_15_2	MAT_N_07_16_2/Y_16_2	MAT_N_07_17_2/Y_17_2	MAT_N_07_18_2/Y_18_2	MAT_N_07_19_2/Y_19_2	MAT_N_07_20_2/Y_20_2	MAT_N_08_02_2/Y_02_2	MAT_N_08_03_2/Y_03_2	MAT_N_08_04_2/Y_04_2	MAT_N_08_05_2/Y_05_2	MAT_N_08_06_2/Y_06_2	MAT_N_08_07_2/Y_07_2	MAT_N_08_08_2/Y_08_2	MAT_N_08_09_2/Y_09_2	MAT_N_08_10_2/Y_10_2	MAT_N_08_11_2/Y_11_2	MAT_N_08_12_2/Y_12_2	MAT_N_08_13_2/Y_13_2	MAT_N_08_14_2/Y_14_2	MAT_N_08_15_2/Y_15_2	MAT_N_08_16_2/Y_16_2	MAT_N_08_17_2/Y_17_2	MAT_N_08_18_2/Y_18_2	MAT_N_08_19_2/Y_19_2	MAT_N_08_20_2/Y_20_2	MAT_N_09_01_2/Y_01_2	MAT_N_09_02_2/Y_02_2	MAT_N_09_03_2/Y_03_2	MAT_N_09_04_2/Y_04_2	MAT_N_09_05_2/Y_05_2	MAT_N_09_06_2/Y_06_2	MAT_N_09_07_2/Y_07_2	MAT_N_09_08_2/Y_08_2	MAT_N_09_09_2/Y_09_2	MAT_N_09_10_2/Y_10_2	MAT_N_09_11_2/Y_11_2	MAT_N_09_12_2/Y_12_2	MAT_N_09_13_2/Y_13_2	MAT_N_09_14_2/Y_14_2	MAT_N_09_15_2/Y_15_2	MAT_N_09_16_2/Y_16_2	MAT_N_09_17_2/Y_17_2	MAT_N_09_18_2/Y_18_2	MAT_N_09_19_2/Y_19_2	MAT_N_09_20_2/Y_20_2	MAT_N_14_01_2/Y_01_2	MAT_N_14_02_2/Y_02_2	MAT_N_14_03_2/Y_03_2	MAT_N_14_04_2/Y_04_2	MAT_N_14_05_2/Y_05_2	MAT_N_14_06_2/Y_06_2	MAT_N_14_07_2/Y_07_2	MAT_N_14_08_2/Y_08_2	MAT_N_14_09_2/Y_09_2	MAT_N_14_10_2/Y_10_2	MAT_N_14_11_2/Y_11_2	MAT_N_14_12_2/Y_12_2	MAT_N_14_13_2/Y_13_2	MAT_N_14_14_2/Y_14_2	MAT_N_14_15_2/Y_15_2	MAT_N_14_16_2/Y_16_2	MAT_N_14_17_2/Y_17_2	MAT_N_14_18_2/Y_18_2	MAT_N_14_19_2/Y_19_2	MAT_N_14_20_2/Y_20_2	MAT_N_16_01_2/Y_01_2	MAT_N_16_02_2/Y_02_2	MAT_N_16_03_2/Y_03_2	MAT_N_16_04_2/Y_04_2	MAT_N_16_05_2/Y_05_2	MAT_N_16_06_2/Y_06_2	MAT_N_16_07_2/Y_07_2	MAT_N_16_08_2/Y_08_2	MAT_N_16_09_2/Y_09_2	MAT_N_16_10_2/Y_10_2	MAT_N_16_11_2/Y_11_2	MAT_N_16_12_2/Y_12_2	MAT_N_16_13_2/Y_13_2	MAT_N_16_14_2/Y_14_2	MAT_N_16_15_2/Y_15_2	MAT_N_16_16_2/Y_16_2	MAT_N_16_17_2/Y_17_2	MAT_N_16_18_2/Y_18_2	MAT_N_16_19_2/Y_19_2	MAT_N_16_20_2/Y_20_2	MAT_N_17_02_2/Y_02_2	MAT_N_17_03_2/Y_03_2	MAT_N_17_04_2/Y_04_2	MAT_N_17_05_2/Y_05_2	MAT_N_17_06_2/Y_06_2	MAT_N_17_07_2/Y_07_2	MAT_N_17_08_2/Y_08_2	MAT_N_17_09_2/Y_09_2	MAT_N_17_10_2/Y_10_2	MAT_N_17_11_2/Y_11_2	MAT_N_17_12_2/Y_12_2	MAT_N_17_13_2/Y_13_2	MAT_N_17_14_2/Y_14_2	MAT_N_17_15_2/Y_15_2	MAT_N_17_16_2/Y_16_2	MAT_N_17_17_2/Y_17_2	MAT_N_17_18_2/Y_18_2	MAT_N_17_19_2/Y_19_2	MAT_N_17_20_2/Y_20_2	MAT_N_01_13_2/Y_13_2	MAT_N_02_13_2/Y_13_2	MAT_N_03_13_2/Y_13_2	MAT_N_04_13_2/Y_13_2	MAT_N_05_13_2/Y_13_2	MAT_N_06_13_2/Y_13_2	MAT_N_07_13_2/Y_13_2	MAT_N_08_13_2/Y_13_2	MAT_N_09_13_2/Y_13_2	MAT_N_10_13_2/Y_13_2	MAT_N_11_13_2/Y_13_2	MAT_N_12_13_2/Y_13_2	MAT_N_13_13_2/Y_13_2	MAT_N_14_13_2/Y_13_2	MAT_N_15_13_2/Y_13_2	MAT_N_16_13_2/Y_13_2	MAT_N_17_13_2/Y_13_2	MAT_N_18_13_2/Y_13_2	MAT_N_19_13_2/Y_13_2	MAT_N_20_13_2/Y_13_2	EXP_13_2	PEXP_13_H01_2	NEWBUIL_H01_2	PNEWBUIL_H01_2	NEW_TRUCKS_15_2	NEW_TRUCKS_16_2	NEW_LUV_16_2	TRUCKS_15_2	TRUCKS_22_15_2	TRUCKS_23_15_2	TRUCKS_24_15_2	NEW_TRUCKS_22_15_2	NEW_TRUCKS_23_15_2	NEW_TRUCKS_24_15_2	TRUCKS_16_2	TRUCKS_22_16_2	TRUCKS_23_16_2	TRUCKS_24_16_2	NEW_TRUCKS_22_16_2	NEW_TRUCKS_23_16_2	NEW_TRUCKS_24_16_2	PNEW_TRUCKS_22_15_2	PNEW_TRUCKS_23_15_2	PNEW_TRUCKS_24_15_2	PNEW_TRUCKS_22_16_2	PNEW_TRUCKS_23_16_2	PNEW_TRUCKS_24_16_2	LUV_16_2	LUV_22_16_2	LUV_23_16_2	LUV_24_16_2	PNEW_LUV_22_16_2	PNEW_LUV_23_16_2	PNEW_LUV_24_16_2	NEW_LUV_22_16_2	NEW_LUV_23_16_2	NEW_LUV_24_16_2	YQ_01_2	YQ_02_2	YQ_03_2	YQ_04_2	YQ_05_2	YQ_06_2	YQ_07_2	YQ_08_2	YQ_09_2	YQ_10_2	YQ_11_2	YQ_12_2	YQ_13_2	YQ_14_2	YQ_15_2	YQ_16_2	YQ_17_2	YQ_18_2	YQ_19_2	YQ_20_2	PYQ_01_2	PYQ_02_2	PYQ_03_2	PYQ_04_2	PYQ_05_2	PYQ_06_2	PYQ_07_2	PYQ_08_2	PYQ_09_2	PYQ_10_2	PYQ_11_2	PYQ_12_2	PYQ_13_2	PYQ_14_2	PYQ_15_2	PYQ_16_2	PYQ_17_2	PYQ_18_2	PYQ_19_2	PYQ_20_2	PMAT_03_15_2	PMAT_03_16_2	PINV_IRVE_2	INV_IRVE_2
+
+'Reporting_Logan.sheet(t)
+'show Reporting_Logan
+
+
+ if %exceptions_PAC="yes" then
+
+group Reporting_PAC  DISPINC_AI_VAL_H01_1	DISPINC_AI_VAL_H01_2	TCSS_H01	TCSS_SE_H01	W_S_H01_1	L_S_H01_1	W_S_H01_2	L_S_H01_2	W_SE_H01_1	L_SE_H01_1	W_SE_H01_2	L_SE_H01_2	PRESOC_DOM_VAL_H01_1	PRESOC_DOM_VAL_H01_2	PRESOC_DOM_OTH_VAL_1	PRESOC_DOM_OTH_VAL_2	PRESOC_DOM_U_VAL_1	PRESOC_DOM_U_VAL_2	FW_VAL_H01_1	FW_VAL_H01_2	IR_VAL_H01_1	AIC_VAL_H01_1	REDIS_VAL_H	SUB_AUTO_VAL_1	SUB_RENOV_VAL_1	IR_VAL_H01_2	AIC_VAL_H01_2	REDIS_VAL_H	SUB_AUTO_VAL_2	SUB_RENOV_VAL_2	DISPINC_VAL_H01_1	DISPINC_VAL_H01_2	ARBINC_VAL_H01_1	PNEXP_H01_1*NEXP_H01_1	EXP_HOUSING_VAL_H01_1	EXP_13_OTH_VAL_H01_1	EXP_MOB_VAL_H01_1	ARBINC_VAL_H01_2	PNEXP_H01_2*NEXP_H01_2	EXP_HOUSING_VAL_H01_2	EXP_13_OTH_VAL_H01_2	EXP_MOB_VAL_H01_2	EXP_HOUSING_VAL_H01_1	EXP_HOUSING_VAL_H01_2	EXP_HOUSING_VAL_H01_CA_1	EXP_HOUSING_VAL_H01_CB_1	EXP_HOUSING_VAL_H01_CC_1	EXP_HOUSING_VAL_H01_CD_1	EXP_HOUSING_VAL_H01_CE_1	EXP_HOUSING_VAL_H01_CF_1	EXP_HOUSING_VAL_H01_CG_1	EXP_HOUSING_VAL_H01_CA_2	EXP_HOUSING_VAL_H01_CB_2	EXP_HOUSING_VAL_H01_CC_2	EXP_HOUSING_VAL_H01_CD_2	EXP_HOUSING_VAL_H01_CE_2	EXP_HOUSING_VAL_H01_CF_2	EXP_HOUSING_VAL_H01_CG_2	EXP_HOUSING_VAL_H01_CB_1	DEBT_REHAB_VAL_H01_CB_1(-1)*(R_I_REHAB_H01_CB_1(-1)+R_RMBS_REHAB_H01_CB_1(-1))	R_CASH_REHAB_H01_CB*PREHAB_H01_CB_1*REHAB_H01_CB_1	DEBT_NEWB_VAL_H01_CB_1(-1)*(R_I_NEWBUIL_H01_CB_1(-1)+R_RMBS_NEWBUIL_H01_CB(-1))	R_CASH_NEWBUIL_H01_CB*PNEWBUIL_H01_CB_1*NEWBUIL_H01_CB_1	PENER_BUIL_H01_CB_1*ENER_BUIL_H01_CB_1	EXP_HOUSING_VAL_H01_CB_2	DEBT_REHAB_VAL_H01_CB_2(-1)*(R_I_REHAB_H01_CB_2(-1)+R_RMBS_REHAB_H01_CB_2(-1))	R_CASH_REHAB_H01_CB*PREHAB_H01_CB_2*REHAB_H01_CB_2	DEBT_NEWB_VAL_H01_CB_2(-1)*(R_I_NEWBUIL_H01_CB_2(-1)+R_RMBS_NEWBUIL_H01_CB(-1))	R_CASH_NEWBUIL_H01_CB*PNEWBUIL_H01_CB_2*NEWBUIL_H01_CB_2	PENER_BUIL_H01_CB_2*ENER_BUIL_H01_CB_2	PREHAB_H01_CB_1	REHAB_H01_CB_1	PREHAB_H01_CB_2	REHAB_H01_CB_2	REHAB_H01_CA	REHAB_H01_CB_1	REHAB_H01_CC_1	REHAB_H01_CD_1	REHAB_H01_CE_1	REHAB_H01_CF_1	REHAB_H01_CG_1	REHAB_H01_CB_2	REHAB_H01_CC_2	REHAB_H01_CD_2	REHAB_H01_CE_2	REHAB_H01_CF_2	REHAB_H01_CG_2	CHOC_PAC_VAL_1	CHOC_PAC_VAL_2
+                                                                                                                                                                                                                      
+Reporting_PAC.sheet(t)
+show Reporting_PAC
+ 
+endif
+
+else 
+
+group Reporting_2 ER_oil_2 ER_oil_2201_2 ER_Oil_2202_2 ER_elec_2301_2 ER_elec_2302_2 ER_elec_2303_2 ER_elec_2304_2 ER_elec_2305_2 ER_elec_2306_2 _
     ER_elec_2307_2 ER_elec_2308_2 ER_elec_2 ER_gas_2 ER_gas_2401_2 ER_gas_2402_2 ER_gas_2403_2 ER_gas_2404_2 ER_gas_2405_2 ER_gas_2406_2 ER_coal_2 _ 
     ER_Total_2 ER_Agriculture_2 ER_Indus_2 ER_Residential_2 ER_Tertiary_2 ER_Trans_Private_2 ER_Trans_Public_2  _
     ER_Auto_2 ER_AUTO_th_A_2 ER_AUTO_th_B_2 ER_AUTO_th_C_2 ER_AUTO_th_D_2 ER_AUTO_th_E_2 ER_AUTO_th_F_2 ER_AUTO_th_G_2 ER_AUTO_elec_A_2 _
@@ -423,7 +942,18 @@ L_s_20_2-L_s_20_0 _
 
 100*((DEBT_REHAB_Val_tot_H01_CA_2+DEBT_REHAB_Val_tot_H01_CB_2+DEBT_REHAB_Val_tot_H01_CC_2+DEBT_REHAB_Val_tot_H01_CD_2+DEBT_REHAB_Val_tot_H01_CE_2+DEBT_REHAB_Val_tot_H01_CF_2+DEBT_REHAB_Val_tot_H01_CG_2)/(PGDP_2*GDP_2)-(DEBT_REHAB_Val_tot_H01_CA_0+DEBT_REHAB_Val_tot_H01_CB_0+DEBT_REHAB_Val_tot_H01_CC_0+DEBT_REHAB_Val_tot_H01_CD_0+DEBT_REHAB_Val_tot_H01_CE_0+DEBT_REHAB_Val_tot_H01_CF_0+DEBT_REHAB_Val_tot_H01_CG_0)/(PGDP_0*GDP_0)) _
 
-100*((DEBT_auto_Val_tot_H01_CA_2+DEBT_auto_Val_tot_H01_CB_2+DEBT_auto_Val_tot_H01_CC_2+DEBT_auto_Val_tot_H01_CD_2+DEBT_auto_Val_tot_H01_CE_2+DEBT_auto_Val_tot_H01_CF_2+DEBT_auto_Val_tot_H01_CG_2)/(PGDP_2*GDP_2)-(DEBT_auto_Val_tot_H01_CA_0+DEBT_auto_Val_tot_H01_CB_0+DEBT_auto_Val_tot_H01_CC_0+DEBT_auto_Val_tot_H01_CD_0+DEBT_auto_Val_tot_H01_CE_0+DEBT_auto_Val_tot_H01_CF_0+DEBT_auto_Val_tot_H01_CG_0)/(PGDP_0*GDP_0))
+100*((DEBT_auto_Val_tot_H01_CA_2+DEBT_auto_Val_tot_H01_CB_2+DEBT_auto_Val_tot_H01_CC_2+DEBT_auto_Val_tot_H01_CD_2+DEBT_auto_Val_tot_H01_CE_2+DEBT_auto_Val_tot_H01_CF_2+DEBT_auto_Val_tot_H01_CG_2)/(PGDP_2*GDP_2)-(DEBT_auto_Val_tot_H01_CA_0+DEBT_auto_Val_tot_H01_CB_0+DEBT_auto_Val_tot_H01_CC_0+DEBT_auto_Val_tot_H01_CD_0+DEBT_auto_Val_tot_H01_CE_0+DEBT_auto_Val_tot_H01_CF_0+DEBT_auto_Val_tot_H01_CG_0)/(PGDP_0*GDP_0)) _
+
+REC_VAL_0 DIV_GOV_VAL_0 IR_VAL_0 AIC_VAL_0 -CL_S_20_0*L_S_20_0*PROG_L_20_0 PY_20_0*Y_20_0 PTAX_0*TAX_0 PIY_0*IY_0 PIS_0*IS_0 PCSE_TOT_0*CSE_TOT_0 PCSS_TOT_0*CSS_TOT_0 -(PE_20_0*E_20_0) -(PMAT_20_0*MAT_20_0) -(PIY_20_0*IY_20_0) REC_VAL_2 DIV_GOV_VAL_2 IR_VAL_2 AIC_VAL_2 -CL_S_20_2*L_S_20_2*PROG_L_20_2 PY_20_2*Y_20_2 PTAX_2*TAX_2 PIY_2*IY_2 PIS_2*IS_2 PCSE_TOT_2*CSE_TOT_2 PCSS_TOT_2*CSS_TOT_2 -(PE_20_2*E_20_2) -(PMAT_20_2*MAT_20_2) -(PIY_20_2*IY_20_2) DEP_VAL_0 CL_S_20_0*L_S_20_0*PROG_L_20_0 R_G_0(-1)*DEBT_G_VAL_0(-1) PRESOC_VAL_0 SUB_RENOV_VAL_0 SUB_AUTO_VAL_0 PE_20_0*E_20_0 PMAT_20_0*MAT_20_0 PIY_20_0*IY_20_0 PIA_20_0*IA_20_0 PG_0*G_0-PG_20_0*G_20_0 -(PSUB_0*SUB_0-PSUB_01_0*SUB_01_0) -(PSY_0*SY_0-PSY_01_0*SY_01_0) DEP_VAL_2 CL_S_20_2*L_S_20_2*PROG_L_20_2 R_G_2(-1)*DEBT_G_VAL_2(-1) PRESOC_VAL_2 SUB_RENOV_VAL_2 SUB_AUTO_VAL_2 PE_20_2*E_20_2 PMAT_20_2*MAT_20_2 PIY_20_2*IY_20_2 PIA_20_2*IA_20_2 PG_2*G_2-PG_20_2*G_20_2 -(PSUB_2*SUB_2-PSUB_01_2*SUB_01_2) -(PSY_2*SY_2-PSY_01_2*SY_01_2) PGDP_0 PGDP_2 GDP_0 GDP_2 INC_GOV_OTH_NET REDIS_VAL_H _
+
+100*(DEBT_SNF_VAL_2/(PGDP_2*GDP_2)-DEBT_SNF_VAL_0/(PGDP_0*GDP_0)) _
+100*(DEBT_SNF_ENER_2/(PGDP_2*GDP_2)-DEBT_SNF_ENER_0/(PGDP_0*GDP_0)) _
+100*(DEBT_SNF_VAL_2/DEBT_SNF_VAL_0-1) _
+100*(DEBT_SNF_ENER_2/DEBT_SNF_ENER_0-1) _
+
+PRESOC_DOM_Oth_VAL_0 PRESOC_DOM_Oth_VAL_2 PRESOC_DOM_U_VAL_0 PRESOC_DOM_U_VAL_2 PRESOC_ROW_VAL (-PG_20_0*G_20_0) (-PG_20_2*G_20_2) (PG_0*G_0) (PG_2*G_2)
+
+
 'Endif
 '	if %exceptions_DGT = "yes" then
 'ajout de variables de sortie calculees dans Exceptions_DGT pour le cahier de variantes Reporting_3.add' 
@@ -447,8 +977,8 @@ Q_Mtep_sec_01_2 Q_Mtep_sec_02_2 Q_Mtep_sec_03_2 Q_Mtep_sec_04_2 Q_Mtep_sec_05_2 
 
 
                                                                                                                                                                                                                                          
-Reporting_4.sheet(t)
-show Reporting_4
+'Reporting_4.sheet(t)
+'show Reporting_4
 
 
 group Reporting_5 100*(GDP_2/GDP-1) 100*((VA_2-VA_20_2)/(VA-VA_20)-1) 100*((CH_2-CH)/GDP) 100*((CH_03_2-CH_03)/GDP) _
@@ -569,15 +1099,27 @@ Exp_13 Exp_13_2 exp_newauto_val_h01_ca exp_newauto_val_h01_cb exp_newauto_val_h0
 exp_newauto_val_h01_cd_2 exp_newauto_val_h01_ce_2 exp_newauto_val_h01_cf_2 exp_newauto_val_h01_cg_2
 
                                                                                                                                                                                                                                           
-Reporting_5.sheet(t)
-show Reporting_5
-show Reporting_5
+'Reporting_5.sheet(t)
+'show Reporting_5
+
+ 
+'group Reporting_6 REC_VAL_0 DIV_GOV_VAL_0 IR_VAL_0 AIC_VAL_0 -CL_S_20_0*L_S_20_0*PROG_L_20_0 PY_20_0*Y_20_0 PTAX_0*TAX_0 PIY_0*IY_0 PIS_0*IS_0 PCSE_TOT_0*CSE_TOT_0 PCSS_TOT_0*CSS_TOT_0 -(PE_20_0*E_20_0) -(PMAT_20_0*MAT_20_0) -(PIY_20_0*IY_20_0) REC_VAL_2 DIV_GOV_VAL_2 IR_VAL_2 AIC_VAL_2 -CL_S_20_2*L_S_20_2*PROG_L_20_2 PY_20_2*Y_20_2 PTAX_2*TAX_2 PIY_2*IY_2 PIS_2*IS_2 PCSE_TOT_2*CSE_TOT_2 PCSS_TOT_2*CSS_TOT_2 -(PE_20_2*E_20_2) -(PMAT_20_2*MAT_20_2) -(PIY_20_2*IY_20_2) DEP_VAL_0 CL_S_20_0*L_S_20_0*PROG_L_20_0 R_G_0(-1)*DEBT_G_VAL_0(-1) PRESOC_VAL_0 SUB_RENOV_VAL_0 SUB_AUTO_VAL_0 PE_20_0*E_20_0 PMAT_20_0*MAT_20_0 PIY_20_0*IY_20_0 PIA_20_0*IA_20_0 PG_0*G_0-PG_20_0*G_20_0 -(PSUB_0*SUB_0-PSUB_01_0*SUB_01_0) -(PSY_0*SY_0-PSY_01_0*SY_01_0) DEP_VAL_2 CL_S_20_2*L_S_20_2*PROG_L_20_2 R_G_2(-1)*DEBT_G_VAL_2(-1) PRESOC_VAL_2 SUB_RENOV_VAL_2 SUB_AUTO_VAL_2 PE_20_2*E_20_2 PMAT_20_2*MAT_20_2 PIY_20_2*IY_20_2 PIA_20_2*IA_20_2 PG_2*G_2-PG_20_2*G_20_2 -(PSUB_2*SUB_2-PSUB_01_2*SUB_01_2) -(PSY_2*SY_2-PSY_01_2*SY_01_2) PGDP_0 PGDP_2 GDP_0 GDP_2 INC_GOV_OTH_NET REDIS_VAL_H
+
+'Reporting_6.sheet(t)
+'show Reporting_6
+                          
+ 
+endif
 
 'Pour export des données vers MatMat
 '   call export_matter
  ' call export_matmat
-    
+    'MAT_13_0 MATM_sec_13_0 MATD_sec_13_0 MAT_13_2 MATM_sec_13_2 MATD_sec_13_2 E_13_0 EM_sec_13_0 ED_sec_13_0     E_13_2 EM_sec_13_2 ED_sec_13_2  
     endif
+  
+  endif
+  
+  endif
   
   endif
 

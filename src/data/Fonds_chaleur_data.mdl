@@ -1,0 +1,76 @@
+################# Evaluation macro du fonds chaleur
+
+PhiY_ener_exo[ce, se] :=  MTEP($se, 53+$ce)
+
+PhiY_E_24[se24] := PhiY_ener_exo_24[se24] + Q_Mtep_FC[se24]  / Q_Mtep_ef_tot_SOU_24   
+
+PhiY_ener_24[se24] := PhiY_E_24[se24]
+
+PhiY_E_24 := 1
+
+verif_PhiY_ener_24 := 0
+
+Q_Mtep_FC := 0*1 ^ (@year - %baseyear)
+
+Q_Mtep_FC[s] := 0*1 ^ (@year - %baseyear)
+
+dQ_Mtep_FC[s] := 0
+
+Q_Mtep_FC[ce,s] := 0 *1 ^ (@year - %baseyear)
+
+dQ_Mtep_FC[ce,s] := 0
+
+SUB_FC[s] := TSUB_FC[s] * dQ_Mtep_FC[s]
+
+TSUB_FC[s] := 0
+
+IA_FC[s] :=0
+
+P_Mtep[se24] := Y[se24]/Q_Mtep_ef_tot[se24]  if Q_Mtep_ef_tot[se24] > 0 
+
+
+dQ_Mtep_FC[se24,s] := 0
+
+K_FC[se24] :=0
+
+K_nFC[se24] :=K[se24] 
+
+PROG_Ap_K[se24] * K[se24] := Q_Mtep_ef_tot[se24]* @elem(P_Mtep[se24],%baseyear)
+
+PROG_Ap_K_nFC[se24] * K_nFC[se24] := (Q_Mtep_ef_tot[se24]- Q_Mtep_FC[se24]) * @elem(P_Mtep[se24],%baseyear)
+
+PROG_Ap_I_nFC[se24]  := PROG_Ap_K_nFC[se24]
+
+#PROG_AP_I_FC[se24]*(IA_FC[se24]+ 0.0001) := dQ_Mtep_FC[se24] * @elem(P_Mtep[se24],%baseyear)
+
+PROG_AP_I_FC[se24] := PROG_AP_I_nFC[se24]
+
+K_A[se24] := K[se24]
+
+Y_nFC[se24] :=Y[se24] - Y_FC[se24]
+
+Y_FC[se24] := Q_Mtep_FC[se24]*@elem(P_Mtep[se24],%baseyear)
+
+SUBST_K_n_nFC[s] := SUBST_K_n[s]
+        
+SUBST_K_n_FC[s] := SUBST_K_n[s]
+
+SUBST_K_FC[s] := SUBST_K[s]
+
+SUBST_K_nFC[s] := SUBST_K[s]
+
+ PE_tot_nFC[s] := PE[s]+PE_Signal[s]+PE_CEE[s]+PE_signal_bis[s] 
+ 
+ PE_tot_FC[s] :=  PE[s]+PE_Signal[s]+PE_CEE[s]+PE_signal_bis[s] + PE_signal_FC[s]   
+ 
+ PE_Signal_FC[s] :=0 
+ 
+PE_Signal_FC[ce,s] :=0 
+
+SUBST_E_FC[ce,s]  := SUBST_E[ce,s]
+
+SUBST_E_nFC[ce,s]  := SUBST_E_FC[ce,s]
+
+SUBST_E_n_FC[ce,s] := SUBST_E_n[ce,s]
+
+SUBST_E_n_nFC[ce,s] := SUBST_E_n[ce,s]

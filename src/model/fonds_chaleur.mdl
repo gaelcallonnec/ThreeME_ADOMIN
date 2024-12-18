@@ -1,0 +1,462 @@
+################# Evaluation macro du fonds chaleur
+
+############# hausse de la production de biogaz, biomasse, cogénération et UIOM etc au détriment du gaz naturel dans les reseaux de chaleur (hors industrie)
+
+### on a : 
+
+#Y_24[se24]  = PhiY_24[se24]  * YQ_24
+
+#PhiY_24[se24]  = PhiY_ef_tot_24[se24]  * ( 1  - ( 0  + PhiY_24_01 ) )
+
+#PhiY_ef_tot_24[se24]  = Q_Mtep_ef_tot_24[se24]  / Q_Mtep_ef_tot_SOU_24
+
+#Q_Mtep_ef_tot_24[se24]  = Q_Mtep_ef_24[se24]  + Q_Mtep_X_24[se24]  + Q_Mtep_Nener_24[se24]  - Q_Mtep_in_24[se24]  + Q_Mtep_out_24[se24]
+
+#Q_Mtep_ef_24[se24]  = Q_Mtep_ef_SOU_24  * PhiY_ener_24[se24]
+
+# on endogénéïse PhiY_ener_24[se24]
+
+PhiY_E_24[se24] = PhiY_ener_exo_24[se24] + Q_Mtep_FC[se24]  / Q_Mtep_ef_tot_SOU_24 # Attention, il faut corriger la part exo donnée par Enerdata qui prend déjà en compte le fonds chaleur, sinon double compte.  
+
+PhiY_ener_24[se24] = PhiY_E_24[se24] / PhiY_E_24
+
+PhiY_E_24 = (sum(PhiY_E_24[se24] on se24))
+
+verif_PhiY_ener_24 = 1 - (sum(PhiY_ener_24[se24] on se24)) 
+
+# avec Q_Mtep_FC le nombre de Mtep produites gràce au fonds chaleur cumulé sur la période et dQ_Mtep_FC la production de nouvelles Mtep financée dans l'année: 
+#dQ_Mtep_FC[se24] est la production des reseaux de chaleur et dQ_Mtep_FC[se24,s] est la consommation des secteurs en chaleur renouvelable suite au changement de chaudière financé par le FC. 
+
+Q_Mtep_FC[se24] = Q_Mtep_FC[se24]{-1} + dQ_Mtep_FC[se24] + sum(dQ_Mtep_FC[se24,sne] on sne) 
+
+# on suppose que les Mtep d'ENR produites gràce au fonds chaleur se substituent au gaz naturel.
+
+@over Q_Mtep_FC = sum(Q_Mtep_FC[se24] on se24) 
+
+########## chronique d'investissement
+
+#### la production Y s'ajuste à la demande (déterminée par les PhiY_ener) et la demande de facteur K dépend de Y. 
+#### Si le ratio K/Y des secteurs correspondaient à celui des installations financées par le fonds chaleur, il ne serait pas nécessaire de modifier l'équation de demande du facteur capital.
+#### c'est peu probable. Il faut s'assurer que les investissements supplémentaires entre AMS et AME soient sont du même montant que ceux financés par le fonds chaleur 
+#### pour cela, on modifie Prog_K
+
+#on a l'équation :
+
+# PROG_K[se24]  = PROG_K[se24]{-1}  * ( 1  + GR_PROG_K[se24]  + CHOC_K  + CHOC_PGF )
+
+# on la modifie comme suit : 
+
+# soit prog_AP_I_FC[se24] la productivité apparente du facteur capital des nouvelles installations financées par le fonds chaleur
+
+P_Mtep[se24] = Y[se24]/Q_Mtep_ef_tot[se24]  if Q_Mtep_ef_tot[se24] > 0
+
+#où Y[se24]/Q_Mtep_ef_tot[se24] = (@elem(PY[se24], %baseyear)*Y[se24])/Q_Mtep_ef_tot[se24] C'est un proxy du prix de la Mtep en euros constants base 2006 et IA_FC les investissements bruts subventionnés par le fonds chaleur en euros 2006. Prog_K est la moyenne pondérée entre le niveau antérieur de prog _K{-1} = Y{-1}/K{-1} et la productivité des nouvelles installations  dQ_Mtep_FC*P_Mtep/IA_FC
+ 
+# option 1 (leger écart de 143M en 2023 entre sum(d(IA[se24]) et sum(IA_FC[se24]))
+
+# K_nFC[se24] + K_FC[se24]  = K[se24]{-1} *(1 + dlog(Y[se24])  + d(SUBST_K[se24])  - dlog(PROG_K[se24]))
+# (K_nFC[se24] + K_FC[se24])/K[se24]{-1} =(1 + dlog(Y[se24])  + d(SUBST_K[se24])  - dlog(PROG_K[se24]))
+# (K_nFC[se24] + K_FC[se24])/K[se24]{-1} -1 - dlog(Y[se24])  - d(SUBST_K[se24]) = - dlog(PROG_K[se24]) 
+
+@over dlog(PROG_K[se24]) = GR_PROG_K[se24] + (@year>2022)* (1 - (K_nFC[se24] + K_FC[se24])/K[se24]{-1} + dlog(Y[se24])  + d(SUBST_K[se24]))
+
+ K_nFC[se24]  = K_nFC[se24]{-1} *(1 + dlog(Y_nFC[se24])  + d(SUBST_K[se24])  - GR_PROG_K[se24]) 
+
+ K_FC[se24] = K_FC[se24]{-1}*(1-tdec[se24]) + IA_FC[se24]
+ 
+# option 2 (leger écart de 72M en 2023 entre sum(d(IA[se24]) et sum(IA_FC[se24]))
+
+ @over K_nFC[se24]  = K_nFC[se24]{-1} *(1 + dlog(Y_nFC[se24])  + d(SUBST_K[se24])  - dlog(PROG_K[se24])) 
+
+ @over K_FC[se24] = K_FC[se24]{-1}*(1-tdec[se24]) + IA_FC[se24]
+ 
+ @over K[se24]  = K_FC[se24] + K_nFC[se24]
+ 
+@over PROG_K[se24] =  PROG_K[se24]{-1} *(1 + GR_PROG_K[se24])
+
+############chronique d'aide
+
+# la subvention versée est égale à un taux d'aide en euro courant par Mtep, multipliée par le nombre de Mtep supplémentaires produites annuellement (les données entre 2009 et 2023 sont en euros courants, on suppose que les taux d'aide seront indexés sur l'inflation au-delà de 2023).
+
+SUB_FC[se24] = TSUB_FC[se24]* (1 + (@year > 2023) * dlog(P)) *dQ_Mtep_FC[se24]
+
+# pour simplifier l'aide est versée sous forme de crédit d'impôt (on aurait pu activer SUB mais cette équation n'est pas lue car il n'existait pas de subvention au secteur de la distribution de gaz à l'année de base)
+
+@over TAX_CR_VAL[se24] = SUB_FC[se24]  
+
+
+############## Aides au CApex dans l'industrie 
+
+# la subvention versée est égale à un taux d'aide en euro courant par Mtep, multipliée par le nombre de Mtep supplémentaires produites annuellement (les données entre 2009 et 2023 sont en euros courants, on suppose que les taux d'aide seront indexés sur l'inflation au-delà de 2023).
+
+SUB_FC[sind] = TSUB_FC[sind]* (1 + (@year > 2023) * dlog(P)) *dQ_Mtep_FC[sind]
+
+# pour simplifier l'aide est versée sous forme de crédit d'impôt 
+
+@over TAX_CR_VAL[sind] = - T_TAX_CR[sind] * (d(E[sind]/YQ[sind])<=0) * PE[sind]*d(E[sind]/YQ[sind])*YQ[sind]{-1} + SUB_FC[sind]  
+  
+#il faut mettre un choc sur ia_n_des si on veut une hausse de l'investissement sans variation de la consommation énergétique en Mtep
+
+
+# Si on attend une substitution capital énergie, il faut modifier les équations de Subst_K et SUBST_E : 
+
+##### option  substitution capital énergie dans l'industrie
+
+# On pose 
+
+@over d(SUBST_K_n[s])  =  - ES_KLEM($s , 1)*d(log(CK[s]/PROG_K[s])-log(CL[s]))*phi_l_bis[s]{-1} _
+        - eta_K_E[s]*d(log(CK[s]/PROG_K[s])- log((PE[s]+PE_Signal[s]+PE_CEE[s]+PE_signal_bis[s]+PE_signal_FC[s])/PROG_E[s]))*phi_e_bis[s]{-1} _
+        -ES_KLEM($s,3)*d(log(CK[s]/PROG_K[s])-log(PMAT[s]))*phi_mat_bis[s]{-1}
+
+#avec
+#d(SUBST_K[sind])=d(0.8*SUBST_K_n[sind]+(1-0.8)*SUBST_K[sind]{-1})
+#
+#d(log(IA_n_des[sind]))=d(IMP_BUD_niv_bis[sind])+(ADJUST(1,1)*dlog(IA_n_des[sind]{-1})+1.8*dlog(Y[sind])+ _
+                       #0.28*(log(IA_notionnel[sind]{-1})+IMP_BUD_niv_bis[sind]{-1}-log(IA_n_des[sind]{-1}))+ADJUST(1,4)*d(SUBST_K[sind]))
+
+# pour calibrer PE_signal_FC[sind] on pose :
+ 
+d(SUBST_K_n_nFC[sind]) =- ES_KLEM(10 , 1)*d(log(CK[sind]/PROG_K[sind])-log(CL[sind]))*phi_l_bis[sind]{-1} _
+        - eta_K_E[sind]*d(log(CK[sind]/PROG_K[sind])- log((PE[sind]+PE_Signal[sind]+PE_CEE[sind]+PE_signal_bis[sind])/PROG_E[sind]))*phi_e_bis[sind]{-1} _
+        -ES_KLEM(10,3)*d(log(CK[sind]/PROG_K[sind])-log(PMAT[sind]))*phi_mat_bis[sind]{-1}
+        
+d(SUBST_K_n_FC[sind]) =- ES_KLEM(10 , 1)*d(log(CK[sind]/PROG_K[sind])-log(CL[sind]))*phi_l_bis[sind]{-1} _
+       - eta_K_E[sind]*d(log(CK[sind]/PROG_K[sind])- log((PE[sind]+PE_Signal[sind]+PE_CEE[sind]+PE_signal_bis[sind]+PE_signal_FC[sind])/PROG_E[sind]))*phi_e_bis[sind]{-1} _
+        -ES_KLEM(10,3)*d(log(CK[sind]/PROG_K[sind])-log(PMAT[sind]))*phi_mat_bis[sind]{-1}
+
+SUBST_K_FC[sind]=0.8*SUBST_K_n_FC[sind]+(1-0.8)*SUBST_K_FC[sind]{-1}
+
+SUBST_K_nFC[sind]=0.8*SUBST_K_n_nFC[sind]+(1-0.8)*SUBST_K_nFC[sind]{-1}
+
+#on souhaite 
+
+#IA_FC[sind] = IA_n_des[sind]-IA_n_des_nFC[sind]
+
+# avec d(log(IA_n_des_nFC[sne]))=d(IMP_BUD_niv_bis[sne])+(ADJUST(1,1)*dlog(IA_n_des[sne]{-1})+1.8*dlog(Y[sne])+ _
+#                       0.28*(log(IA_notionnel[sne]{-1})+IMP_BUD_niv_bis[sne]{-1}-log(IA_n_des[sne]{-1}))+ADJUST(1,4)*d(SUBST_K_nFC[sne]))
+#
+#d(IA_FC[sind] + IA_n_des_nFC[sind])/IA_n_des[sind]{-1}= d(IMP_BUD_niv_bis[sne])+(ADJUST(1,1)*dlog(IA_n_des[sne]{-1})+1.8*dlog(Y[sne])+ _
+                       #0.28*(log(IA_notionnel[sne]{-1})+IMP_BUD_niv_bis[sne]{-1}-log(IA_n_des[sne]{-1}))+ADJUST(1,4)*d(SUBST_K[sne]))
+#                       
+#d(IA_FC[sind] + IA_n_des_nFC[sind])= IA_n_des[sind]{-1} * (d(IMP_BUD_niv_bis[sne])+(ADJUST(1,1)*dlog(IA_n_des[sne]{-1})+1.8*dlog(Y[sne])+ _
+                       #0.28*(log(IA_notionnel[sne]{-1})+IMP_BUD_niv_bis[sne]{-1}-log(IA_n_des[sne]{-1}))+ADJUST(1,4)*d(SUBST_K[sne])))
+#                       
+#d(IA_FC[sind])= IA_n_des[sind]{-1} * (d(IMP_BUD_niv_bis[sne])+(ADJUST(1,1)*dlog(IA_n_des[sne]{-1})+1.8*dlog(Y[sne])+ _
+                       #0.28*(log(IA_notionnel[sne]{-1})+IMP_BUD_niv_bis[sne]{-1}-log(IA_n_des[sne]{-1}))+ADJUST(1,4)*d(SUBST_K[sne]))) -d(IA_n_des_nFC[sind])
+#
+#d(IA_FC[sind])/IA_n_des[sind]{-1}= (d(IMP_BUD_niv_bis[sne])+(ADJUST(1,1)*dlog(IA_n_des[sne]{-1})+1.8*dlog(Y[sne])+ _
+                       #0.28*(log(IA_notionnel[sne]{-1})+IMP_BUD_niv_bis[sne]{-1}-log(IA_n_des[sne]{-1}))+ADJUST(1,4)*d(SUBST_K[sne]))) -d(IA_n_des_nFC[sind])/IA_n_des[sind]{-1} 
+#                       
+#d(IA_FC[sind])/IA_n_des[sind]{-1}= d(IMP_BUD_niv_bis[sne])+(ADJUST(1,1)*dlog(IA_n_des[sne]{-1})+1.8*dlog(Y[sne])+ _
+                       #0.28*(log(IA_notionnel[sne]{-1})+IMP_BUD_niv_bis[sne]{-1}-log(IA_n_des[sne]{-1}))+ADJUST(1,4)*d(SUBST_K[sne])) _
+                       #-(d(IMP_BUD_niv_bis[sne])+(ADJUST(1,1)*dlog(IA_n_des[sne]{-1})+1.8*dlog(Y[sne])+ _
+                       #0.28*(log(IA_notionnel[sne]{-1})+IMP_BUD_niv_bis[sne]{-1}-log(IA_n_des[sne]{-1}))+ADJUST(1,4)*d(SUBST_K_nFC[sne]))) 
+
+#d(IA_FC[sind])/IA_n_des[sind]{-1}=  ADJUST(1,4)*d(SUBST_K[sne]) - ADJUST(1,4)*d(SUBST_K_nfC[sne]) 
+                                              
+#d(IA_FC[sind])/IA_n_des[sind]{-1}  = ADJUST(1,4)*(d(SUBST_K_FC[sind])-d(SUBST_K_nFC[sind]))
+#
+#d(IA_FC[sind])/IA_n_des[sind]{-1}  = ADJUST(1,4)*(d(0.8*SUBST_K_n_FC[sind]+(1-0.8)*SUBST_K_FC[sind]{-1})-d(0.8*SUBST_K_n_nFC[sind]+(1-0.8)*SUBST_K_nFC[sind]{-1}))
+#       
+ #d(IA_FC[sind])/(IA_n_des[sind]{-1}*ADJUST(1,4))  = d(0.8*SUBST_K_n_FC[sind]+(1-0.8)*SUBST_K_FC[sind]{-1})-d(0.8*SUBST_K_n_nFC[sind]+(1-0.8)*SUBST_K_nFC[sind]{-1})
+#                                                                                          
+ #d(IA_FC[sind])/(IA_n_des[sind]{-1}*ADJUST(1,4))  = 0.8*d(SUBST_K_n_FC[sind]) + (1-0.8)*d(SUBST_K_FC[sind]{-1}) - 0.8*d(SUBST_K_n_nFC[sind])-(1-0.8)*d(SUBST_K_nFC[sind]{-1})
+#        
+ #d(IA_FC[sind])/(IA_n_des[sind]{-1}*ADJUST(1,4))-(1-0.8)*d(SUBST_K_FC[sind]{-1})+(1-0.8)*d(SUBST_K_nFC[sind]{-1}) = 0.8*d(SUBST_K_n_FC[sind]) - 0.8*d(SUBST_K_n_nFC[sind])
+#        
+ #(d(IA_FC[sind])/(IA_n_des[sind]{-1}*ADJUST(1,4))-(1-0.8)*d(SUBST_K_FC[sind]{-1})+(1-0.8)*d(SUBST_K_nFC[sind]{-1}))/0.8 = d(SUBST_K_n_FC[sind]) - d(SUBST_K_n_nFC[sind])
+
+#                                                                                                                                    
+ #(d(IA_FC[sind])/(IA_n_des[sind]{-1}*ADJUST(1,4))-(1-0.8)*d(SUBST_K_FC[sind]{-1})+(1-0.8)*d(SUBST_K_nFC[sind]{-1}))/0.8  =   _
+               #(- ES_KLEM(10 , 1)*d(log(CK[sind]/PROG_K[sind])-log(CL[sind]))*phi_l_bis[sind]{-1} _
+                #- eta_K_E[sind]*d(log(CK[sind]/PROG_K[sind])- log((PE[sind]+PE_Signal[sind]+PE_CEE[sind]+PE_signal_bis[sind] + PE_signal_FC[sind])/PROG_E[sind]))*phi_e_bis[sind]{-1} _
+               #-ES_KLEM(10,3)*d(log(CK[sind]/PROG_K[sind])-log(PMAT[sind]))*phi_mat_bis[sind]{-1}) _ 
+               #- (- ES_KLEM(10 , 1)*d(log(CK[sind]/PROG_K[sind])-log(CL[sind]))*phi_l_bis[sind]{-1} _
+               #- eta_K_E[sind]*d(log(CK[sind]/PROG_K[sind])- log((PE[sind]+PE_Signal[sind]+PE_CEE[sind]+PE_signal_bis[sind])/PROG_E[sind]))*phi_e_bis[sind]{-1} _
+               #-ES_KLEM(10,3)*d(log(CK[sind]/PROG_K[sind])-log(PMAT[sind]))*phi_mat_bis[sind]{-1})        
+# 
+ #on pose : 
+ 
+ PE_tot_nFC[sind] = PE[sind]+PE_Signal[sind]+PE_CEE[sind]+PE_signal_bis[sind] 
+ 
+ PE_tot_FC[sind] =  PE[sind]+PE_Signal[sind]+PE_CEE[sind]+PE_signal_bis[sind] + PE_signal_FC[sind]   
+ 
+ #(d(IA_FC[sind])/(IA_n_des[sind]{-1}*ADJUST(1,4))-(1-0.8)*d(SUBST_K_FC[sind]{-1})+(1-0.8)*d(SUBST_K_nFC[sind]{-1}))/0.8  =   _
+               #- ES_KLEM($sind+1 , 1)*d(log(CK[sind]/PROG_K[sind])-log(CL[sind]))*phi_l_bis[sind]{-1} _
+                #- eta_K_E[sind]*d(log(CK[sind]/PROG_K[sind])- log(PE_tot_FC[sind]/PROG_E[sind]))*phi_e_bis[sind]{-1} _
+               #-ES_KLEM($sind+1,3)*d(log(CK[sind]/PROG_K[sind])-log(PMAT[sind]))*phi_mat_bis[sind]{-1} _ 
+               #- (- ES_KLEM($sind+1 , 1)*d(log(CK[sind]/PROG_K[sind])-log(CL[sind]))*phi_l_bis[sind]{-1} _
+               #- eta_K_E[sind]*d(log(CK[sind]/PROG_K[sind])- log(PE_tot_nFC[sind]/PROG_E[sind]))*phi_e_bis[sind]{-1} _
+               #-ES_KLEM($sind+1,3)*d(log(CK[sind]/PROG_K[sind])-log(PMAT[sind]))*phi_mat_bis[sind]{-1})  
+#        
+  #(d(IA_FC[sind])/(IA_n_des[sind]{-1}*ADJUST(1,4))-(1-0.8)*d(SUBST_K_FC[sind]{-1})+(1-0.8)*d(SUBST_K_nFC[sind]{-1}))/0.8  =   _
+               #- ES_KLEM($sind+1 , 1)*d(log(CK[sind]/PROG_K[sind])-log(CL[sind]))*phi_l_bis[sind]{-1} _
+                #- eta_K_E[sind]*d(log(CK[sind]/PROG_K[sind])- log(PE_tot_FC[sind]/PROG_E[sind]))*phi_e_bis[sind]{-1} _
+               #-ES_KLEM($sind+1,3)*d(log(CK[sind]/PROG_K[sind])-log(PMAT[sind]))*phi_mat_bis[sind]{-1} _ 
+               #+ ES_KLEM($sind+1 , 1)*d(log(CK[sind]/PROG_K[sind])-log(CL[sind]))*phi_l_bis[sind]{-1} _
+               #+ eta_K_E[sind]*d(log(CK[sind]/PROG_K[sind])- log(PE_tot_nFC[sind]/PROG_E[sind]))*phi_e_bis[sind]{-1} _
+               #+ES_KLEM($sind+1,3)*d(log(CK[sind]/PROG_K[sind])-log(PMAT[sind]))*phi_mat_bis[sind]{-1} 
+#               
+ #(d(IA_FC[sind])/(IA_n_des[sind]{-1}*ADJUST(1,4))-(1-0.8)*d(SUBST_K_FC[sind]{-1})+(1-0.8)*d(SUBST_K_nFC[sind]{-1}))/0.8  =   _
+               #- eta_K_E[sind]*(dlog(CK[sind]/PROG_K[sind])- dlog(PE_tot_FC[sind]/PROG_E[sind]))*phi_e_bis[sind]{-1} _
+               #+ eta_K_E[sind]*(dlog(CK[sind]/PROG_K[sind])- dlog(PE_tot_nFC[sind]/PROG_E[sind]))*phi_e_bis[sind]{-1} 
+#                 
+ #(d(IA_FC[sind])/(IA_n_des[sind]{-1}*ADJUST(1,4))-(1-0.8)*d(SUBST_K_FC[sind]{-1})+(1-0.8)*d(SUBST_K_nFC[sind]{-1}))/0.8  =   _
+               #- eta_K_E[sind]*(dlog(CK[sind]/PROG_K[sind])- dlog(PE_tot_FC[sind]) +dlog(PROG_E[sind]))*phi_e_bis[sind]{-1} _
+               #+ eta_K_E[sind]*(dlog(CK[sind]/PROG_K[sind])- dlog(PE_tot_nFC[sind]) +dlog(PROG_E[sind]))*phi_e_bis[sind]{-1} 
+# 
+ #(d(IA_FC[sind])/(IA_n_des[sind]{-1}*ADJUST(1,4))-(1-0.8)*d(SUBST_K_FC[sind]{-1})+(1-0.8)*d(SUBST_K_nFC[sind]{-1}))/0.8  =   _
+               #+ eta_K_E[sind]* dlog(PE_tot_FC[sind])*phi_e_bis[sind]{-1} _
+               #- eta_K_E[sind]*dlog(PE_tot_nFC[sind])*phi_e_bis[sind]{-1}  
+#  
+ #(d(IA_FC[sind])/(IA_n_des[sind]{-1}*ADJUST(1,4))-(1-0.8)*d(SUBST_K_FC[sind]{-1})+(1-0.8)*d(SUBST_K_nFC[sind]{-1}))/0.8  =   _
+               #+ eta_K_E[sind]* phi_e_bis[sind]{-1} * ( dlog(PE_tot_FC[sind]) - dlog(PE_tot_nFC[sind])) 
+               
+
+ #dlog(PE_tot_FC[sind]) = _
+                  #((d(IA_FC[sind])/(IA_n_des[sind]{-1}*ADJUST(1,4))-(1-0.8)*d(SUBST_K_FC[sind]{-1})+(1-0.8)*d(SUBST_K_nFC[sind]{-1}))/0.8) _
+                   #/(eta_K_E[sind]*phi_e_bis[sind]{-1}) + dlog(PE_tot_nFC[sind])
+#                   
+#dlog(PE_tot_nFC[sind]+ PE_signal_FC[sind] ) = _
+                  #((d(IA_FC[sind])/(IA_n_des[sind]{-1}*ADJUST(1,4))-(1-0.8)*d(SUBST_K_FC[sind]{-1})+(1-0.8)*d(SUBST_K_nFC[sind]{-1}))/0.8) _
+                   #/(eta_K_E[sind]*phi_e_bis[sind]{-1}) + dlog(PE_tot_nFC[sind])
+#    
+#(PE_tot_nFC[sind]+ PE_signal_FC[sind] - PE_tot_nFC[sind]{-1}- PE_signal_FC[sind]{-1})/(PE_tot_nFC[sind]{-1}+ PE_signal_FC[sind]{-1}) = _
+                  #((d(IA_FC[sind])/(IA_n_des[sind]{-1}*ADJUST(1,4))-(1-0.8)*d(SUBST_K_FC[sind]{-1})+(1-0.8)*d(SUBST_K_nFC[sind]{-1}))/0.8) _
+                   #/(eta_K_E[sind]*phi_e_bis[sind]{-1}) + dlog(PE_tot_nFC[sind])
+# 
+ #(PE_tot_nFC[sind]+ PE_signal_FC[sind] - PE_tot_nFC[sind]{-1} - PE_signal_FC[sind]{-1}) = _
+                 #(PE_tot_nFC[sind]{-1}+ PE_signal_FC[sind]{-1}) * (((d(IA_FC[sind])/(IA_n_des[sind]{-1}*ADJUST(1,4))-(1-0.8)*d(SUBST_K_FC[sind]{-1})+(1-0.8)*d(SUBST_K_nFC[sind]{-1}))/0.8) _
+                   #/(eta_K_E[sind]*phi_e_bis[sind]{-1}) + dlog(PE_tot_nFC[sind])) 
+ 
+  #d(PE_signal_FC[sind])   = _
+                 #(PE_tot_nFC[sind]{-1}+ PE_signal_FC[sind]{-1}) * (((d(IA_FC[sind])/(IA_n_des[sind]{-1}*ADJUST(1,4))-(1-0.8)*d(SUBST_K_FC[sind]{-1})+(1-0.8)*d(SUBST_K_nFC[sind]{-1}))/0.8) _
+                #/(eta_K_E[sind]*phi_e_bis[sind]{-1}) + dlog(PE_tot_nFC[sind])) - d(PE_tot_nFC[sind]) 
+#    
+ #d(PE_signal_FC[sind]) = _
+                 #(PE_tot_nFC[sind]{-1}+ PE_signal_FC[sind]{-1}) * ((d(IA_FC[sind])/(IA_n_des[sind]{-1}*ADJUST(1,4))-(1-0.8)*(d(SUBST_K_FC[sind]{-1})-d(SUBST_K_nFC[sind]{-1})))/0.8) _
+                  #/(eta_K_E[sind]*phi_e_bis[sind]{-1}) + (PE_tot_nFC[sind]{-1}+ PE_signal_FC[sind]{-1})* dlog(PE_tot_nFC[sind]) -d(PE_tot_nFC[sind])               
+#
+ #d(PE_signal_FC[sind]) = _
+                 #(PE_tot_nFC[sind]{-1}+ PE_signal_FC[sind]{-1}) * ((d(IA_FC[sind])/(IA_n_des[sind]{-1}*ADJUST(1,4))-(1-0.8)*(d(SUBST_K_FC[sind]{-1})-d(SUBST_K_nFC[sind]{-1})))/0.8) _
+                  #/(eta_K_E[sind]*phi_e_bis[sind]{-1}) + PE_tot_nFC[sind]{-1}* dlog(PE_tot_nFC[sind])+ PE_signal_FC[sind]{-1}* dlog(PE_tot_nFC[sind]) -d(PE_tot_nFC[sind]) 
+#                  
+#d(PE_signal_FC[sind]) = _
+                 #(PE_tot_nFC[sind]{-1}+ PE_signal_FC[sind]{-1}) * ((d(IA_FC[sind])/(IA_n_des[sind]{-1}*ADJUST(1,4))-(1-0.8)*(d(SUBST_K_FC[sind]{-1})-d(SUBST_K_nFC[sind]{-1})))/0.8) _
+                  #/(eta_K_E[sind]*phi_e_bis[sind]{-1}) + d(PE_tot_nFC[sind])+ PE_signal_FC[sind]{-1}* dlog(PE_tot_nFC[sind]) -d(PE_tot_nFC[sind]) 
+#                  
+#d(PE_signal_FC[sind]) = _
+                 #(PE_tot_nFC[sind]{-1}+ PE_signal_FC[sind]{-1}) * ((d(IA_FC[sind])/(IA_n_des[sind]{-1}*ADJUST(1,4))-(1-0.8)*(d(SUBST_K_FC[sind]{-1})-d(SUBST_K_nFC[sind]{-1})))/0.8) _
+                  #/(eta_K_E[sind]*phi_e_bis[sind]{-1}) + PE_signal_FC[sind]{-1}* dlog(PE_tot_nFC[sind]) 
+
+ #gelPE_signal_FC[sind] = _
+                  #gel(IA_FC[sind]>0) *(PE_signal_FC[sind]{-1}* (1 + dlog(PE_tot_nFC[sind])) + _
+                   #gel(PE_tot_nFC[sind]{-1}+ PE_signal_FC[sind]{-1}) * ((d(IA_FC[sind])/(IA_n_des[sind]{-1}*ADJUST(1,4))-(1-0.8)*(d(SUBST_K_FC[sind]{-1})-d(SUBST_K_nFC[sind]{-1})))/0.8) _
+                  #gel/(eta_K_E[sind]*phi_e_bis[sind]{-1})) 
+
+#gel A vérifier. IL faudrait refaire la démo en créant une variable IA_n_des_nFC[sind] et IA_notionnel_nfc[sne] car effet d'hysteresis sur  IA_notionnel
+                                   
+#gel@over d(SUBST_E_n[sind])=-eta_K_E[sind]*d(log((PE[sind]+PE_Signal[sind]+PE_CEE[sind]+PE_signal_bis[sind]+PE_signal_E[sind] + PE_signal_FC[sind])/PROG_E[sind]) _
+                        #gel-log(CK[sind]/PROG_K[sind]))*phi_k_bis[sind](-1)-eta_L_E[sind]*d(log((PE[sind]+PE_Signal[sind]+PE_CEE[sind]+PE_signal_bis[sind] + PE_signal_FC[sind])/PROG_E[sind]) _ 
+                        #gel-log(CL[sind]))*phi_l_bis[sind](-1)-ES_KLEM($sind,6)*d(log((PE[sind]+PE_Signal[sind]+PE_CEE[sind]+PE_signal_bis[sind] + PE_signal_FC[sind])/PROG_E[sind]) _ 
+                        #gel-log(PMAT[sind]))*phi_mat_bis[sind](-1)
+
+#gel#  si la variation de E[sind] ne correspond pour aux résultats des données technico éco, il faut soit modifier eta_K_E soit ajouter un coef multiplicateur à PE_signal_FC et le calibrer. 
+#gel# si l'on attend pas de baissse de la consommation globale d'énergie, il faut geler l'équation ci dessus et modifier les équations de substitution inter-énergie. 
+#gel  
+#gel##### option subsitution inter énergie Charbon/fioul/gaz
+#gel
+#gel  
+#gel#SUBST_E[ce,sind]  = ADJUST(5 , 6)  * SUBST_E_n[ce,sind]  + ( 1  - ADJUST(5 , 6) )  * SUBST_E[ce,sind]{-1}
+#gel#
+#gel#d(SUBST_E_n_nFC[ce,sind]) = sum( -ES_NRJ($s, cols_ce(ce, ce_oth)) * d(log(PE[ce, s] + PE_Signal[ce, s]) - log(PE[ce_oth, s] + PE_Signal[ce_oth, s])) * _
+                               #gel#PE[ce_oth, s]{-1}*E[ce_oth, s]{-1} / (PE[s]{-1}*E[s]{-1}) if ce_oth <> ce on ce_oth in %list_com_E) _
+                         #gel#if E[ce, s] <> 0
+#gel                         
+#gel# @over dlog(E_oth_des[ce, se]) = dlog(E_oth[se]) + d(SUBST_E[ce, se]) + (@year>2006)*d(Q_Mtep_in[ce, se])/E[ce, se]{-1}    if E_oth_des[ce, se] <> 0
+#gel#
+#gel# d(log(E_indus_des[ce, s])) = d(log(E_indus[s])) + d(SUBST_E[ce, s]) if E_indus_des[ce, s] <> 0
+#gel
+ #gel# dlog(E_indus[sne])= dlog(E_indus_n[sne])  if E_indus_n[sne] <> 0 
+#gel
+#gel#    d(log(E_indus_n[s])) = d(log(Y[s])) + d(SUBST_E[s]) - d(log(PROG_E_indus[s])) if E_indus_n[s] <> 0     
+#gel
+    #gel#d(log(E_indus_des[ce, s])) = d(log(E_indus[s])) + d(SUBST_E[ce, s]) if E_indus_des[ce, s] <> 0
+#gel#    
+    #gel#d(log(E_oth_des[ce, s])) = d(log(E_oth[s])) + d(SUBST_E[ce, s]) if E_oth_des[ce, s] <> 0
+#gel#    
+    #gel#E_indus[ce, s] = phi_E_indus[ce,s] * E_indus[s]  if E_indus[ce,s] <> 0
+#gel#    
+    #gel#E_indus_des[s] = sum(E_indus_des[ce, s] on ce)
+#gel#         
+    #gel#E_oth[ce, s] = phi_E_oth[ce,s] * E_oth[s]  if E_oth[ce,s] <> 0
+#gel#    
+    #gel#E_oth_des[s] = sum(E_oth_des[ce, s] on ce) 
+#gel#       
+    #gel#phi_E_oth[ce,s]*((E_oth_des[s]>0)*E_oth_des[s]+(E_oth_des[s]<=0)) = (E_oth_des[s]>0)*E_oth_des[ce,s]+ (E_oth_des[s]<=0)*0  
+#gel# 
+    #gel#phi_E_indus[ce,s]*((E_indus_des[s]>0)*E_indus_des[s]+(E_indus_des[s]<=0)) = (E_indus_des[s]>0)*E_indus_des[ce,s]+(E_indus_des[s]<=0)*0   
+#gel 
+#gel
+#gel
+#gel
+#gel# on souhaite que ;:
+#gel
+#gel#dlog(Q_Mtep_FC[ce,s]) = d(SUBST_E_FC[ce, s]) - d(SUBST_E_nFC[ce, s])
+#gel
+#gel# on pose 
+#gel
+#gelSUBST_E_FC[ce,sind]  = ADJUST(5 , 6)  * SUBST_E_n_FC[ce,sind]  + ( 1  - ADJUST(5 , 6) )  * SUBST_E_FC[ce,sind]{-1}
+#gel
+#gelSUBST_E_nFC[ce,sind]  = ADJUST(5 , 6)  * SUBST_E_n_nFC[ce,sind]  + ( 1  - ADJUST(5 , 6) )  * SUBST_E_nFC[ce,sind]{-1}
+#gel
+#geld(SUBST_E_n_FC[ce,sind]) = sum( -ES_NRJ($sind, cols_ce(ce, ce_oth)) * d(log(PE[ce, sind] + PE_Signal[ce, sind] + PE_Signal_FC[ce, sind]) - log(PE[ce_oth, sind] + PE_Signal[ce_oth, sind] +PE_Signal_FC[ce_oth, sind])) * _
+                               #gelPE[ce_oth, sind]{-1}*E[ce_oth, sind]{-1} / (PE[sind]{-1}*E[sind]{-1}) if ce_oth <> ce on ce_oth in %list_com_E) _
+                         #gelif E[ce, sind] <> 0
+#gel
+#geld(SUBST_E_n_nFC[ce,sind]) = sum( -ES_NRJ($sind, cols_ce(ce, ce_oth)) * d(log(PE[ce, sind] + PE_Signal[ce, sind]) - log(PE[ce_oth, sind] + PE_Signal[ce_oth, sind])) * _
+                               #gelPE[ce_oth, sind]{-1}*E[ce_oth, sind]{-1} / (PE[sind]{-1}*E[sind]{-1}) if ce_oth <> ce on ce_oth in %list_com_E) _
+                         #gelif E[ce, sind] <> 0
+                         
+#dlog(Q_Mtep_FC[ce,s]) = d(SUBST_E_FC[ce, s]) - d(SUBST_E_nFC[ce, s])
+
+#dlog(Q_Mtep_FC[ce,s]) = d(ADJUST(5 , 6)  * SUBST_E_n_FC[ce,sind]  + ( 1  - ADJUST(5 , 6) )  * SUBST_E_FC[ce,sind]{-1}) _
+#                         - d(ADJUST(5 , 6)  * SUBST_E_n_nFC[ce,sind]  + ( 1  - ADJUST(5 , 6) )  * SUBST_E_nFC[ce,sind]{-1})
+
+#dlog(Q_Mtep_FC[ce,s]) = ADJUST(5 , 6)  * d(SUBST_E_n_FC[ce,sind])  + ( 1  - ADJUST(5 , 6) )  * d(SUBST_E_FC[ce,sind]{-1}) _
+#                         - ADJUST(5 , 6)  * d(SUBST_E_n_nFC[ce,sind])  - ( 1  - ADJUST(5 , 6) )  * d(SUBST_E_nFC[ce,sind]{-1})
+
+#dlog(Q_Mtep_FC[ce,s]) + ( 1  - ADJUST(5 , 6) )  * d(SUBST_E_FC[ce,sind]{-1} + SUBST_E_nFC[ce,sind]{-1}) = ADJUST(5 , 6)  * d(SUBST_E_n_FC[ce,sind])   _
+#                         - ADJUST(5 , 6)  * d(SUBST_E_n_nFC[ce,sind])  
+
+#dlog(Q_Mtep_FC[ce,s]) + ( 1  - ADJUST(5 , 6) )  * d(SUBST_E_FC[ce,sind]{-1} + SUBST_E_nFC[ce,sind]{-1}) = _ 
+        #ADJUST(5 , 6)  * (sum( -ES_NRJ($s, cols_ce(ce, ce_oth)) * d(log(PE[ce, s] + PE_Signal[ce, s] + PE_Signal_FC[ce, s]) - log(PE[ce_oth, s] + PE_Signal[ce_oth, s] _
+         #+PE_Signal_FC[ce_oth, s])) * PE[ce_oth, s]{-1}*E[ce_oth, s]{-1} / (PE[s]{-1}*E[s]{-1}))   _
+        #- ADJUST(5 , 6)  * (sum( -ES_NRJ($s, cols_ce(ce, ce_oth)) * d(log(PE[ce, s] + PE_Signal[ce, s]) - log(PE[ce_oth, s] + PE_Signal[ce_oth, s])) * _
+                               #PE[ce_oth, s]{-1}*E[ce_oth, s]{-1} / (PE[s]{-1}*E[s]{-1})) if ce_oth <> ce on ce_oth in %list_com_E) _
+                         #if E[ce, s] <> 0) 
+# prenons le cas du charbon pour mieux comprendre :
+
+#dlog(Q_Mtep_FC[21,s]) + ( 1  - ADJUST(5 , 6) )  * d(SUBST_E_FC[21,sind]{-1} + SUBST_E_nFC[21,sind]{-1}) = _
+#-ES_NRJ(10,cols_ce(21,22))*d(log(PE_21[sind]+PE_Signal_21[sind]+ PE_Signal_FC[21, s]) _
+#-log(PE_22[sind]+PE_Signal_22[sind]))*PE_22[sind]{-1}*E_22[sind]{-1}/(PE[sind]{-1}*E[sind]{-1})+ _
+#-ES_NRJ(10,cols_ce(21,23))*d(log(PE_21[sind]+PE_Signal_21[sind])-log(PE_23[sind]+PE_Signal_23[sind]))*PE_23[sind]{-1}*E_23[sind]{-1}/(PE[sind]{-1}*E[sind]{-1})+ _
+#-ES_NRJ(10,cols_ce(21,24))*d(log(PE_21[sind]+PE_Signal_21[sind])-log(PE_24[sind]+PE_Signal_24[sind]))*PE_24[sind]{-1}*E_24[sind]{-1}/(PE[sind]{-1}*E[sind]{-1})
+#-(-ES_NRJ(10,cols_ce(21,22))*d(log(PE_21[sind]+PE_Signal_21[sind]+ PE_Signal_FC[21, s]) _
+#-log(PE_22[sind]+PE_Signal_22[sind]))*PE_22[sind]{-1}*E_22[sind]{-1}/(PE[sind]{-1}*E[sind]{-1})+ _
+#-ES_NRJ(10,cols_ce(21,23))*d(log(PE_21[sind]+PE_Signal_21[sind])-log(PE_23[sind]+PE_Signal_23[sind]))*PE_23[sind]{-1}*E_23[sind]{-1}/(PE[sind]{-1}*E[sind]{-1})+ _
+#-ES_NRJ(10,cols_ce(21,24))*d(log(PE_21[sind]+PE_Signal_21[sind])-log(PE_24[sind]+PE_Signal_24[sind]))*PE_24[sind]{-1}*E_24[sind]{-1}/(PE[sind]{-1}*E[sind]{-1}))
+#
+#dlog(Q_Mtep_FC[21,sind]) + ( 1  - ADJUST(5 , 6) )  * d(SUBST_E_FC[21,sind]{-1} + SUBST_E_nFC[21,sind]{-1}) = _
+#-ES_NRJ(10,cols_ce(21,22))*d(log(PE_21[sind]+PE_Signal_21[sind]+ PE_Signal_FC[21, s]) _
+#-log(PE_22[sind]+PE_Signal_22[sind]))*PE_22[sind]{-1}*E_22[sind]{-1}/(PE[sind]{-1}*E[sind]{-1})+ _
+#-ES_NRJ(10,cols_ce(21,23))*d(log(PE_21[sind]+PE_Signal_21[sind]+ PE_Signal_FC[21, sind])-log(PE_23[sind]+PE_Signal_23[sind]))*PE_23[sind]{-1}*E_23[sind]{-1}/(PE[sind]{-1}*E[sind]{-1})+ _
+#-ES_NRJ(10,cols_ce(21,24))*d(log(PE_21[sind]+PE_Signal_21[sind]+ PE_Signal_FC[21, sind])-log(PE_24[sind]+PE_Signal_24[sind]))*PE_24[sind]{-1}*E_24[sind]{-1}/(PE[sind]{-1}*E[sind]{-1}) _
+#+ES_NRJ(10,cols_ce(21,22))*d(log(PE_21[sind]+PE_Signal_21[sind]) _
+#-log(PE_22[sind]+PE_Signal_22[sind]))*PE_22[sind]{-1}*E_22[sind]{-1}/(PE[sind]{-1}*E[sind]{-1})+ _
+#+ES_NRJ(10,cols_ce(21,23))*d(log(PE_21[sind]+PE_Signal_21[sind])-log(PE_23[sind]+PE_Signal_23[sind]))*PE_23[sind]{-1}*E_23[sind]{-1}/(PE[sind]{-1}*E[sind]{-1})+ _
+#+ES_NRJ(10,cols_ce(21,24))*d(log(PE_21[sind]+PE_Signal_21[sind])-log(PE_24[sind]+PE_Signal_24[sind]))*PE_24[sind]{-1}*E_24[sind]{-1}/(PE[sind]{-1}*E[sind]{-1})
+#
+#dlog(Q_Mtep_FC[21,sind]) + ( 1  - ADJUST(5 , 6) )  * d(SUBST_E_FC[21,sind]{-1} + SUBST_E_nFC[21,sind]{-1}) = _
+#-ES_NRJ(10,cols_ce(21,22))*d(log(PE_21[sind]+PE_Signal_21[sind]+ PE_Signal_FC[21, sind]))*PE_22[sind]{-1}*E_22[sind]{-1}/(PE[sind]{-1}*E[sind]{-1})+ _
+#-ES_NRJ(10,cols_ce(21,23))*d(log(PE_21[sind]+PE_Signal_21[sind]+ PE_Signal_FC[21, sind]))*PE_23[sind]{-1}*E_23[sind]{-1}/(PE[sind]{-1}*E[sind]{-1})+ _
+#-ES_NRJ(10,cols_ce(21,24))*d(log(PE_21[sind]+PE_Signal_21[sind]+ PE_Signal_FC[21, sind]))*PE_24[sind]{-1}*E_24[sind]{-1}/(PE[sind]{-1}*E[sind]{-1}) _
+#+ES_NRJ(10,cols_ce(21,22))*d(log(PE_21[sind]+PE_Signal_21[sind]))*PE_22[sind]{-1}*E_22[sind]{-1}/(PE[sind]{-1}*E[sind]{-1})+ _
+#+ES_NRJ(10,cols_ce(21,23))*d(log(PE_21[sind]+PE_Signal_21[sind]))*PE_23[sind]{-1}*E_23[sind]{-1}/(PE[sind]{-1}*E[sind]{-1})+ _
+#+ES_NRJ(10,cols_ce(21,24))*d(log(PE_21[sind]+PE_Signal_21[sind]))*PE_24[sind]{-1}*E_24[sind]{-1}/(PE[sind]{-1}*E[sind]{-1})
+#
+#(dlog(Q_Mtep_FC[21,sind]) + ( 1  - ADJUST(5 , 6) )  * d(SUBST_E_FC[21,sind]{-1} + SUBST_E_nFC[21,sind]{-1}))*(PE[sind]{-1}*E[sind]{-1}) = _
+#-ES_NRJ(10,cols_ce(21,22))*d(log(PE_21[sind]+PE_Signal_21[sind]+ PE_Signal_FC[21, sind]))*PE_22[sind]{-1}*E_22[sind]{-1}+ _
+#-ES_NRJ(10,cols_ce(21,23))*d(log(PE_21[sind]+PE_Signal_21[sind]+ PE_Signal_FC[21, sind]))*PE_23[sind]{-1}*E_23[sind]{-1}+ _
+#-ES_NRJ(10,cols_ce(21,24))*d(log(PE_21[sind]+PE_Signal_21[sind]+ PE_Signal_FC[21, sind]))*PE_24[sind]{-1}*E_24[sind]{-1} _ 
+#+ES_NRJ(10,cols_ce(21,22))*d(log(PE_21[sind]+PE_Signal_21[sind]))*PE_22[sind]{-1}*E_22[sind]{-1}+ _
+#+ES_NRJ(10,cols_ce(21,23))*d(log(PE_21[sind]+PE_Signal_21[sind]))*PE_23[sind]{-1}*E_23[sind]{-1}+ _
+#+ES_NRJ(10,cols_ce(21,24))*d(log(PE_21[sind]+PE_Signal_21[sind]))*PE_24[sind]{-1}*E_24[sind]{-1}
+#
+#(dlog(Q_Mtep_FC[21,sind]) + ( 1  - ADJUST(5 , 6) )  * d(SUBST_E_FC[21,sind]{-1} + SUBST_E_nFC[21,sind]{-1}))*(PE[sind]{-1}*E[sind]{-1}) _
+#-ES_NRJ(10,cols_ce(21,22))*d(log(PE_21[sind]+PE_Signal_21[sind]))*PE_22[sind]{-1}*E_22[sind]{-1} _
+#-ES_NRJ(10,cols_ce(21,23))*d(log(PE_21[sind]+PE_Signal_21[sind]))*PE_23[sind]{-1}*E_23[sind]{-1} _
+#-ES_NRJ(10,cols_ce(21,24))*d(log(PE_21[sind]+PE_Signal_21[sind]))*PE_24[sind]{-1}*E_24[sind]{-1} = _
+#-ES_NRJ(10,cols_ce(21,22))*d(log(PE_21[sind]+PE_Signal_21[sind]+ PE_Signal_FC[21, sind]))*PE_22[sind]{-1}*E_22[sind]{-1}+ _
+#-ES_NRJ(10,cols_ce(21,23))*d(log(PE_21[sind]+PE_Signal_21[sind]+ PE_Signal_FC[21, sind]))*PE_23[sind]{-1}*E_23[sind]{-1}+ _
+#-ES_NRJ(10,cols_ce(21,24))*d(log(PE_21[sind]+PE_Signal_21[sind]+ PE_Signal_FC[21, sind]))*PE_24[sind]{-1}*E_24[sind]{-1} 
+#
+#(dlog(Q_Mtep_FC[21,sind]) + ( 1  - ADJUST(5 , 6) )  * d(SUBST_E_FC[21,sind]{-1} + SUBST_E_nFC[21,sind]{-1}))*(PE[sind]{-1}*E[sind]{-1}) _
+#-ES_NRJ(10,cols_ce(21,22))*d(log(PE_21[sind]+PE_Signal_21[sind]))*PE_22[sind]{-1}*E_22[sind]{-1} _
+#-ES_NRJ(10,cols_ce(21,23))*d(log(PE_21[sind]+PE_Signal_21[sind]))*PE_23[sind]{-1}*E_23[sind]{-1} _
+#-ES_NRJ(10,cols_ce(21,24))*d(log(PE_21[sind]+PE_Signal_21[sind]))*PE_24[sind]{-1}*E_24[sind]{-1} = _
+#-ES_NRJ(10,cols_ce(21,22))*d(PE_21[sind]+PE_Signal_21[sind]+ PE_Signal_FC[21, sind])/(PE_21[sind]{-1}+PE_Signal_21[sind]{-1}+ PE_Signal_FC[21, sind){-1})*PE_22[sind]{-1}*E_22[sind]{-1}+ _
+#-ES_NRJ(10,cols_ce(21,23))*d(PE_21[sind]+PE_Signal_21[sind]+ PE_Signal_FC[21, sind])/(PE_21[sind]{-1}+PE_Signal_21[sind]{-1}+ PE_Signal_FC[21, sind){-1})*PE_23[sind]{-1}*E_23[sind]{-1}+ _
+#-ES_NRJ(10,cols_ce(21,24))*d(PE_21[sind]+PE_Signal_21[sind]+ PE_Signal_FC[21, sind])/(PE_21[sind]{-1}+PE_Signal_21[sind]{-1}+ PE_Signal_FC[21, sind){-1})*PE_24[sind]{-1}*E_24[sind]{-1} 
+# 
+ #(dlog(Q_Mtep_FC[21,sind]) + ( 1  - ADJUST(5 , 6) )  * d(SUBST_E_FC[21,sind]{-1} + SUBST_E_nFC[21,sind]{-1}))*(PE[sind]{-1}*E[sind]{-1}) _
+ #-d(log(PE_21[sind]+PE_Signal_21[sind]))*(ES_NRJ(10,cols_ce(21,22))*PE_22[sind]{-1}*E_22[sind]{-1} _
+ #+ES_NRJ(10,cols_ce(21,23))*PE_23[sind]{-1}*E_23[sind]{-1} _
+ #+ES_NRJ(10,cols_ce(21,24))*PE_24[sind]{-1}*E_24[sind]{-1}) = _
+ #-d(PE_21[sind]+PE_Signal_21[sind]+ PE_Signal_FC[21, sind])/(PE_21[sind]{-1}+PE_Signal_21[sind]{-1}+ PE_Signal_FC[21, sind]{-1}) * _
+ #(ES_NRJ(10,cols_ce(21,22))*{-1}*PE_22[sind]{-1}*E_22[sind]{-1}+ _
+ #ES_NRJ(10,cols_ce(21,23))*PE_23[sind]{-1}*E_23[sind]{-1}+ _
+ #ES_NRJ(10,cols_ce(21,24))*PE_24[sind]{-1}*E_24[sind]{-1}) 
+# 
+ #((dlog(Q_Mtep_FC[21,sind]) + ( 1  - ADJUST(5 , 6) )  * d(SUBST_E_FC[21,sind]{-1} + SUBST_E_nFC[21,sind]{-1}))*(PE[sind]{-1}*E[sind]{-1}) _
+ #-d(log(PE_21[sind]+PE_Signal_21[sind]))*(ES_NRJ(10,cols_ce(21,22))*PE_22[sind]{-1}*E_22[sind]{-1} _
+ #+ES_NRJ(10,cols_ce(21,23))*PE_23[sind]{-1}*E_23[sind]{-1} _
+ #+ES_NRJ(10,cols_ce(21,24))*PE_24[sind]{-1}*E_24[sind]{-1}))/(ES_NRJ(10,cols_ce(21,22))*{-1}*PE_22[sind]{-1}*E_22[sind]{-1}+ _
+ #ES_NRJ(10,cols_ce(21,23))*PE_23[sind]{-1}*E_23[sind]{-1}+ _
+ #ES_NRJ(10,cols_ce(21,24))*PE_24[sind]{-1}*E_24[sind]{-1}) = _
+ #-d(PE_21[sind]+PE_Signal_21[sind]+ PE_Signal_FC[21, sind])/(PE_21[sind]{-1}+PE_Signal_21[sind]{-1}+ PE_Signal_FC[21, sind]{-1}) * _
+#
+ #((dlog(Q_Mtep_FC[21,sind]) + ( 1  - ADJUST(5 , 6) )  * d(SUBST_E_FC[21,sind]{-1} + SUBST_E_nFC[21,sind]{-1}))*(PE[sind]{-1}*E[sind]{-1}) _
+ #-d(log(PE_21[sind]+PE_Signal_21[sind]))*(ES_NRJ(10,cols_ce(21,22))*PE_22[sind]{-1}*E_22[sind]{-1} _
+ #+ES_NRJ(10,cols_ce(21,23))*PE_23[sind]{-1}*E_23[sind]{-1} _
+ #+ES_NRJ(10,cols_ce(21,24))*PE_24[sind]{-1}*E_24[sind]{-1}))/(ES_NRJ(10,cols_ce(21,22))*{-1}*PE_22[sind]{-1}*E_22[sind]{-1}+ _
+ #ES_NRJ(10,cols_ce(21,23))*PE_23[sind]{-1}*E_23[sind]{-1}+ _
+ #ES_NRJ(10,cols_ce(21,24))*PE_24[sind]{-1}*E_24[sind]{-1}) * (PE_21[sind]{-1}+PE_Signal_21[sind]{-1}+ PE_Signal_FC[21, sind]{-1})  = _
+ #-d(PE_21[sind]+PE_Signal_21[sind]+ PE_Signal_FC[21, sind])
+# 
+  #((dlog(Q_Mtep_FC[21,sind]) + ( 1  - ADJUST(5 , 6) )  * d(SUBST_E_FC[21,sind]{-1} + SUBST_E_nFC[21,sind]{-1}))*(PE[sind]{-1}*E[sind]{-1}) _
+ #-d(log(PE_21[sind]+PE_Signal_21[sind]))*(ES_NRJ(10,cols_ce(21,22))*PE_22[sind]{-1}*E_22[sind]{-1} _
+ #+ES_NRJ(10,cols_ce(21,23))*PE_23[sind]{-1}*E_23[sind]{-1} _
+ #+ES_NRJ(10,cols_ce(21,24))*PE_24[sind]{-1}*E_24[sind]{-1}))/(ES_NRJ(10,cols_ce(21,22))*{-1}*PE_22[sind]{-1}*E_22[sind]{-1}+ _
+ #ES_NRJ(10,cols_ce(21,23))*PE_23[sind]{-1}*E_23[sind]{-1}+ _
+ #ES_NRJ(10,cols_ce(21,24))*PE_24[sind]{-1}*E_24[sind]{-1}) * (PE_21[sind]{-1}+PE_Signal_21[sind]{-1}+ PE_Signal_FC[21, sind]{-1})  = _
+ #-d(PE_21[sind]) -d(PE_Signal_21[sind]) - d(PE_Signal_FC[21, sind])
+# 
+   #((dlog(Q_Mtep_FC[21,sind]) + ( 1  - ADJUST(5 , 6) )  * d(SUBST_E_FC[21,sind]{-1} + SUBST_E_nFC[21,sind]{-1}))*(PE[sind]{-1}*E[sind]{-1}) _
+ #-d(log(PE_21[sind]+PE_Signal_21[sind]))*(ES_NRJ(10,cols_ce(21,22))*PE_22[sind]{-1}*E_22[sind]{-1} _
+ #+ES_NRJ(10,cols_ce(21,23))*PE_23[sind]{-1}*E_23[sind]{-1} _
+ #+ES_NRJ(10,cols_ce(21,24))*PE_24[sind]{-1}*E_24[sind]{-1}))/(ES_NRJ(10,cols_ce(21,22))*{-1}*PE_22[sind]{-1}*E_22[sind]{-1}+ _
+ #ES_NRJ(10,cols_ce(21,23))*PE_23[sind]{-1}*E_23[sind]{-1}+ _
+ #ES_NRJ(10,cols_ce(21,24))*PE_24[sind]{-1}*E_24[sind]{-1}) * (PE_21[sind]{-1}+PE_Signal_21[sind]{-1}+ PE_Signal_FC[21, sind]{-1}) + d(PE_21[sind]) + d(PE_Signal_21[sind])  = _
+ #- d(PE_Signal_FC[21, sind])
+# 
+  #d(PE_Signal_FC[21, sind]) =  - ((dlog(Q_Mtep_FC[21,sind]) + ( 1  - ADJUST(5 , 6) )  * d(SUBST_E_FC[21,sind]{-1} + SUBST_E_nFC[21,sind]{-1}))*(PE[sind]{-1}*E[sind]{-1}) _
+ #-d(log(PE_21[sind]+PE_Signal_21[sind]))*(ES_NRJ(10,cols_ce(21,22))*PE_22[sind]{-1}*E_22[sind]{-1} _
+ #+ES_NRJ(10,cols_ce(21,23))*PE_23[sind]{-1}*E_23[sind]{-1} _
+ #+ES_NRJ(10,cols_ce(21,24))*PE_24[sind]{-1}*E_24[sind]{-1}))/(ES_NRJ(10,cols_ce(21,22))*{-1}*PE_22[sind]{-1}*E_22[sind]{-1} - _
+ #ES_NRJ(10,cols_ce(21,23))*PE_23[sind]{-1}*E_23[sind]{-1} - _
+ #ES_NRJ(10,cols_ce(21,24))*PE_24[sind]{-1}*E_24[sind]{-1}) * (PE_21[sind]{-1}+PE_Signal_21[sind]{-1}+ PE_Signal_FC[21, sind]{-1}) - d(PE_21[sind]) - d(PE_Signal_21[sind])  
+# 
+#gel
+  #geld(PE_Signal_FC[ce, s]) = - ((d(Q_Mtep_FC[ce,s])/(Q_Mtep_FC[ce,s]+0.001) + ( 1  - ADJUST(5 , 6) )  * d(SUBST_E_FC[ce,s]{-1} + SUBST_E_nFC[ce,s]{-1}))* _ 
+                             #gel(PE[s]{-1}*E[s]{-1}) -d(log(PE[ce,s]+PE_Signal[ce,s]))* _ 
+                             #gel(sum( -ES_NRJ($s, cols_ce(ce, ce_oth))*PE[ce_oth, s]{-1}*E[ce_oth, s]{-1} if ce_oth <> ce on ce_oth in %list_com_E))) _
+                            #gel/(0.001 + sum( -ES_NRJ($s, cols_ce(ce, ce_oth))*PE[ce_oth, s]{-1}*E[ce_oth, s]{-1} if ce_oth <> ce on ce_oth in %list_com_E)) * _
+                            #gel(PE[ce,s]{-1}+PE_Signal[ce,s]{-1}+ PE_Signal_FC[ce, s]{-1}) - d(PE[ce,s]) - d(PE_Signal[ce,s]) if E[ce, s] <> 0  
+ 
+#### option changement de chaudière dans les secteurs industriel bois versus gaz/charbon/pétrole sans baisse de la consommation d'énergie
+
+# on ajoute les investissements financés par le fonds chaleur IA_FC à l'équation d'investissement
+
+#On a : 
+# d(log(IA_n_des[sne]))=d(IMP_BUD_niv_bis[sne])+(ADJUST(1,1)*dlog(IA_n_des[sne]{-1})+1.8*dlog(Y[sne])+ _
+#                       0.28*(log(IA_notionnel[sne]{-1})+IMP_BUD_niv_bis[sne]{-1}-log(IA_n_des[sne]{-1}))+ADJUST(1,4)*d(SUBST_K[sne])
+ # et 
+ 
+# d(log(IA_n[sne]))  = ( @year <= 2019 )  * ( ( IAexo[sne] > 0 )  * ( dlog(IAexo[sne]) ) )  + ( @year > 2019 )  * ( d(log(IA_n_des[sne])))    
+
+# on introduit le choc dans l'équation IA_n[sne] plutôt que dans l'équation IA_n_des[sne] pour éviter que IA_FC{-1} n'influence l'investissement à la période suivante.   
+                   
+@over d(log(IA_n[sne]))  = ( @year <= 2019 )  * ( ( IAexo[sne] > 0 )  * ( dlog(IAexo[sne]) ) )  + ( @year > 2019 )  * ( d(log(IA_n_des[sne] + IA_FC[sne])))
+
+
